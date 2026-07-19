@@ -9,6 +9,7 @@ import {
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,37 +36,69 @@ function useCountUp(target: number, durationMs = 700): number {
   return value;
 }
 
-function Sparkline({ points }: { points: number[] }) {
-  if (points.length < 2 || points.every((point) => point === 0)) return null;
-  const width = 96;
-  const height = 28;
+// ---------------------------------------------------------- mini charts ---
+
+function MiniArea({ points }: { points: number[] }) {
+  const width = 220;
+  const height = 44;
   const max = Math.max(...points, 1);
   const step = width / (points.length - 1);
-  const coords = points.map(
-    (point, index) =>
-      [index * step, height - 3 - (point / max) * (height - 6)] as const,
-  );
-  const path = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${path} L${width},${height} L0,${height} Z`;
+  const x = (index: number) => index * step;
+  const y = (value: number) => height - 4 - (value / max) * (height - 10);
+
+  const line = points
+    .map((value, index) => `${index === 0 ? "M" : "L"}${x(index).toFixed(1)},${y(value).toFixed(1)}`)
+    .join(" ");
+  const area = `${line} L${width},${height} L0,${height} Z`;
 
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-7 w-24"
+      preserveAspectRatio="none"
+      className="h-11 w-full"
       role="img"
-      aria-label="8-week trend"
+      aria-label="12-week trend"
     >
       <path d={area} className="fill-primary/10" />
-      <path d={path} className="stroke-primary fill-none" strokeWidth={2} strokeLinecap="round" />
+      <path
+        d={line}
+        className="stroke-primary fill-none"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
       <circle
-        cx={coords[coords.length - 1][0]}
-        cy={coords[coords.length - 1][1]}
-        r={2.5}
+        cx={x(points.length - 1)}
+        cy={y(points[points.length - 1])}
+        r={3}
         className="fill-primary"
       />
     </svg>
   );
 }
+
+function MiniBars({ points }: { points: { label: string; value: number }[] }) {
+  const max = Math.max(...points.map((point) => point.value), 1);
+  return (
+    <div className="flex h-11 items-end gap-1.5" role="img" aria-label="Breakdown">
+      {points.map((point) => (
+        <div
+          key={point.label}
+          className="flex h-full flex-1 flex-col items-center justify-end gap-0.5"
+        >
+          <div
+            className={cn("bg-primary w-full rounded-t-[3px]", point.value === 0 && "opacity-15")}
+            style={{ height: `${Math.max((point.value / max) * 100, point.value > 0 ? 14 : 6)}%` }}
+          />
+          <span className="text-muted-foreground text-[9px] leading-none">{point.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------- card ---
 
 const ICONS = {
   handshake: Handshake,
@@ -74,15 +107,18 @@ const ICONS = {
   "user-plus": UserPlus,
 } satisfies Record<string, LucideIcon>;
 
+export type KpiChart =
+  | { type: "area"; points: number[] }
+  | { type: "bars"; points: { label: string; value: number }[] };
+
 export type KpiCardProps = {
   label: string;
   value: number;
   icon: keyof typeof ICONS;
   href: string;
-  /** icon-tile tint */
   tone: "blue" | "violet" | "emerald" | "amber";
   trend?: { current: number; previous: number };
-  sparkline?: number[];
+  chart?: KpiChart;
   hint?: string;
 };
 
@@ -93,7 +129,7 @@ const tones: Record<KpiCardProps["tone"], string> = {
   amber: "bg-warning/15 text-[oklch(0.6_0.14_70)] dark:text-warning",
 };
 
-export function KpiCard({ label, value, icon, tone, trend, sparkline, hint }: KpiCardProps) {
+export function KpiCard({ label, value, icon, tone, trend, chart, hint, href }: KpiCardProps) {
   const Icon = ICONS[icon];
   const displayed = useCountUp(value);
 
@@ -104,41 +140,56 @@ export function KpiCard({ label, value, icon, tone, trend, sparkline, hint }: Kp
   const isNew = trend ? trend.previous === 0 && trend.current > 0 : false;
 
   return (
-    <Card className="card-lift animate-fade-up relative gap-0 overflow-hidden py-5">
-      <div className="gradient-primary absolute inset-x-0 top-0 h-0.5 opacity-60" />
-      <CardContent className="space-y-3 px-5">
-        <div className="flex items-start justify-between">
-          <div className={cn("flex size-9 items-center justify-center rounded-xl", tones[tone])}>
-            <Icon className="size-4.5" />
+    <Link href={href} className="group block">
+      <Card className="card-lift animate-fade-up relative h-full gap-0 overflow-hidden py-5">
+        <div className="gradient-primary absolute inset-x-0 top-0 h-0.5 opacity-60" />
+        <CardContent className="flex h-full flex-col gap-3 px-5">
+          <div className="flex items-center justify-between">
+            <div className={cn("flex size-9 items-center justify-center rounded-xl", tones[tone])}>
+              <Icon className="size-4.5" />
+            </div>
+            {delta !== null ? (
+              <span
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-medium",
+                  delta >= 0 ? "bg-success/12 text-success" : "bg-destructive/10 text-destructive",
+                )}
+              >
+                {delta >= 0 ? (
+                  <TrendingUp className="size-3" />
+                ) : (
+                  <TrendingDown className="size-3" />
+                )}
+                {delta >= 0 ? "+" : ""}
+                {delta}%
+              </span>
+            ) : isNew ? (
+              <span className="bg-success/12 text-success rounded-full px-1.5 py-0.5 text-xs font-medium">
+                New
+              </span>
+            ) : null}
           </div>
-          {sparkline ? <Sparkline points={sparkline} /> : null}
-        </div>
-        <div>
-          <p className="font-mono text-3xl font-semibold tracking-tight tabular-nums">
-            {displayed}
-          </p>
-          <p className="text-muted-foreground mt-0.5 text-sm">{label}</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          {delta !== null ? (
-            <span
-              className={cn(
-                "flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium",
-                delta >= 0 ? "bg-success/12 text-success" : "bg-destructive/10 text-destructive",
+
+          <div>
+            <p className="font-mono text-3xl font-semibold tracking-tight tabular-nums">
+              {displayed}
+            </p>
+            <p className="text-muted-foreground mt-0.5 text-sm">{label}</p>
+          </div>
+
+          {chart ? (
+            <div className="mt-auto">
+              {chart.type === "area" ? (
+                <MiniArea points={chart.points} />
+              ) : (
+                <MiniBars points={chart.points} />
               )}
-            >
-              {delta >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-              {delta >= 0 ? "+" : ""}
-              {delta}%
-            </span>
-          ) : isNew ? (
-            <span className="bg-success/12 text-success rounded-full px-1.5 py-0.5 font-medium">
-              New
-            </span>
+            </div>
           ) : null}
-          {hint ? <span className="text-muted-foreground">{hint}</span> : null}
-        </div>
-      </CardContent>
-    </Card>
+
+          {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

@@ -82,6 +82,7 @@ export async function getDashboardData(organizationId: string) {
     activity,
     balance,
     planId,
+    weeklyCandidateRows,
     sourceRows,
     monthlyPlacementRows,
     jobsNeedingCandidates,
@@ -159,6 +160,20 @@ export async function getDashboardData(organizationId: string) {
     }),
     getCreditBalance(organizationId),
     getTenantPlan(organizationId),
+    db
+      .select({
+        week: sql<string>`to_char(date_trunc('week', ${candidates.createdAt}), 'YYYY-MM-DD')`,
+        value: count(),
+      })
+      .from(candidates)
+      .where(
+        and(
+          eq(candidates.organizationId, organizationId),
+          gte(candidates.createdAt, twelveWeeksAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('week', ${candidates.createdAt})`)
+      .orderBy(sql`date_trunc('week', ${candidates.createdAt})`),
     db
       .select({ source: candidates.source, value: count() })
       .from(candidates)
@@ -304,6 +319,21 @@ export async function getDashboardData(organizationId: string) {
     });
   }
 
+  const candidateWeekMap = new Map(weeklyCandidateRows.map((row) => [row.week, row.value]));
+  const candidateSeries: number[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const week = new Date(Date.now() - i * 7 * 24 * 3600 * 1000);
+    const day = week.getDay();
+    week.setDate(week.getDate() - ((day + 6) % 7));
+    candidateSeries.push(candidateWeekMap.get(week.toISOString().slice(0, 10)) ?? 0);
+  }
+
+  const interviewsBreakdown = [
+    { label: "1st", value: stageCount.get("interview_1") ?? 0 },
+    { label: "2nd", value: stageCount.get("interview_2") ?? 0 },
+    { label: "Tech", value: stageCount.get("technical") ?? 0 },
+  ];
+
   // Candidates by source: top 4 + Other (fixed slice order = fixed hue order).
   const sortedSources = [...sourceRows]
     .map((row) => ({ label: row.source ?? "Unknown", value: row.value }))
@@ -330,6 +360,8 @@ export async function getDashboardData(organizationId: string) {
   return {
     sources,
     monthlyPlacements,
+    weeklyCandidates: candidateSeries,
+    interviewsBreakdown,
     kpis: {
       openJobs,
       activeCandidates,
