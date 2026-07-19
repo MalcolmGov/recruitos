@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -142,8 +144,8 @@ export function SourceDonut({ slices }: { slices: { label: string; value: number
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
   const size = 160;
-  const radius = 62;
-  const strokeWidth = 22;
+  const radius = 60;
+  const strokeWidth = 26;
   const circumference = 2 * Math.PI * radius;
 
   const fractions = slices.map((slice) => (total > 0 ? slice.value / total : 0));
@@ -190,11 +192,11 @@ export function SourceDonut({ slices }: { slices: { label: string; value: number
             ))}
           </svg>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-mono text-2xl font-semibold">
+            <span className="font-mono text-3xl font-semibold tracking-tight">
               {active ? active.value : total}
             </span>
             <span className="text-muted-foreground max-w-20 truncate text-center text-[11px]">
-              {active ? active.label : "candidates"}
+              {active ? active.label : "Total"}
             </span>
           </div>
         </div>
@@ -219,6 +221,14 @@ export function SourceDonut({ slices }: { slices: { label: string; value: number
               </span>
             </li>
           ))}
+          <li>
+            <Link
+              href="/reports"
+              className="text-primary mt-2 flex items-center gap-1 px-1.5 text-xs font-medium hover:underline"
+            >
+              View full report <ArrowRight className="size-3" />
+            </Link>
+          </li>
         </ul>
       </CardContent>
     </Card>
@@ -258,8 +268,11 @@ export function MonthlyPlacementsBars({
               onMouseLeave={() => setHover(null)}
             >
               {hover === index ? (
-                <span className="bg-popover text-popover-foreground rounded-md border px-2 py-0.5 text-[11px] whitespace-nowrap shadow-sm">
-                  {formatFees(month.fees)}
+                <span className="bg-popover text-popover-foreground rounded-lg border px-2.5 py-1 text-center text-[11px] leading-tight whitespace-nowrap shadow-md">
+                  <span className="block font-semibold">
+                    {month.value} placement{month.value === 1 ? "" : "s"}
+                  </span>
+                  <span className="text-muted-foreground">{formatFees(month.fees)}</span>
                 </span>
               ) : (
                 <span className="font-mono text-xs font-semibold">
@@ -268,15 +281,23 @@ export function MonthlyPlacementsBars({
               )}
               <div
                 className={cn(
-                  "bg-primary w-full max-w-14 rounded-t-[4px] transition-all duration-300",
-                  hover === index && "opacity-85",
+                  "w-full max-w-14 rounded-t-[5px] transition-all duration-300",
+                  index === months.length - 1 ? "bg-primary" : "bg-primary/45",
+                  hover === index && "bg-primary opacity-90",
                 )}
                 style={{
                   height: `${Math.max((month.value / max) * 100, month.value > 0 ? 8 : 2)}%`,
                   opacity: month.value === 0 ? 0.15 : undefined,
                 }}
               />
-              <span className="text-muted-foreground text-xs">{month.label}</span>
+              <span
+                className={cn(
+                  "text-[11px] font-medium tracking-[0.06em] uppercase",
+                  index === months.length - 1 ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {month.label}
+              </span>
             </div>
           ))}
         </div>

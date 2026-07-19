@@ -39,6 +39,12 @@ export function ActivityTimeline({ entries }: { entries: ActivityEntry[] }) {
     <Card className="animate-fade-up h-full">
       <CardHeader className="flex flex-row items-baseline justify-between">
         <CardTitle className="text-base">Recent activity</CardTitle>
+        <Link
+          href="/settings"
+          className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
+        >
+          View all <ArrowRight className="size-3" />
+        </Link>
       </CardHeader>
       <CardContent>
         {entries.length === 0 ? (

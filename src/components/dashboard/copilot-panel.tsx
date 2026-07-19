@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, Sparkles } from "lucide-react";
+import { CalendarSearch, ChartLine, Search, Send, Sparkles, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -13,10 +13,22 @@ import { runCopilot } from "@/server/ai/copilot";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const SUGGESTIONS = [
-  "Find strong candidates for DevOps Engineer",
-  "Summarise my pipeline this week",
-  "Which offers need chasing?",
+const SUGGESTIONS: { icon: LucideIcon; title: string; prompt: string }[] = [
+  {
+    icon: Search,
+    title: "Find candidates",
+    prompt: "Find strong candidates for DevOps Engineer",
+  },
+  {
+    icon: ChartLine,
+    title: "Pipeline summary",
+    prompt: "Summarise my pipeline this week",
+  },
+  {
+    icon: CalendarSearch,
+    title: "Chase offers",
+    prompt: "Which offers need chasing?",
+  },
 ];
 
 /**
@@ -71,11 +83,19 @@ export function CopilotPanel({ firstName }: { firstName: string }) {
             <div className="space-y-2">
               {SUGGESTIONS.map((suggestion) => (
                 <button
-                  key={suggestion}
-                  onClick={() => send(suggestion)}
-                  className="border-input hover:border-primary/40 hover:bg-accent/50 w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors"
+                  key={suggestion.prompt}
+                  onClick={() => send(suggestion.prompt)}
+                  className="border-input hover:border-primary/40 hover:bg-accent/50 flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors"
                 >
-                  {suggestion}
+                  <span className="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-lg">
+                    <suggestion.icon className="size-3.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-medium">{suggestion.title}</span>
+                    <span className="text-muted-foreground block truncate text-[11px]">
+                      {suggestion.prompt}
+                    </span>
+                  </span>
                 </button>
               ))}
             </div>

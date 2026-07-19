@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { timeAgo } from "@/components/dashboard/side-cards";
 import type { Insight } from "@/server/dashboard";
 import { cn } from "@/lib/utils";
 
@@ -32,12 +33,12 @@ export function AttentionPanel({ insights }: { insights: Insight[] }) {
             </p>
           </div>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1.5">
             {insights.map((insight, index) => (
               <li key={`${index}-${insight.title}`}>
                 <Link
                   href={insight.href}
-                  className="group hover:bg-accent/60 -mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors"
+                  className="group bg-secondary/50 hover:bg-accent/60 flex items-start gap-3 rounded-lg px-2.5 py-2.5 transition-colors"
                 >
                   <span
                     className={cn(
@@ -59,9 +60,16 @@ export function AttentionPanel({ insights }: { insights: Insight[] }) {
                       {insight.detail}
                     </span>
                   </span>
-                  <span className="text-primary mt-1 flex shrink-0 items-center gap-0.5 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
-                    {insight.cta}
-                    <ArrowRight className="size-3" />
+                  <span className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
+                    {insight.at ? (
+                      <span className="text-muted-foreground font-mono text-[11px]">
+                        {timeAgo(insight.at)}
+                      </span>
+                    ) : null}
+                    <span className="text-primary flex items-center gap-0.5 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+                      {insight.cta}
+                      <ArrowRight className="size-3" />
+                    </span>
                   </span>
                 </Link>
               </li>
@@ -72,7 +80,7 @@ export function AttentionPanel({ insights }: { insights: Insight[] }) {
           href="/pipeline"
           className="text-primary mt-3 flex items-center gap-1 text-xs font-medium hover:underline"
         >
-          View pipeline <ArrowRight className="size-3" />
+          View all alerts <ArrowRight className="size-3" />
         </Link>
       </CardContent>
     </Card>

@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { navigation } from "@/lib/navigation";
 
-export function AppTopbar() {
+export function AppTopbar({ alertCount = 0 }: { alertCount?: number }) {
   const pathname = usePathname();
   const active = navigation
     .flatMap((group) => group.items)
@@ -60,10 +60,19 @@ export function AppTopbar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="icon" aria-label="Notifications" asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={`Notifications${alertCount > 0 ? ` (${alertCount})` : ""}`}
+          asChild
+        >
           <Link href="/dashboard" className="relative">
             <Bell className="size-4" />
-            <span className="bg-primary absolute top-1.5 right-1.5 size-1.5 rounded-full" />
+            {alertCount > 0 ? (
+              <span className="bg-destructive absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[10px] font-semibold text-white">
+                {alertCount > 9 ? "9+" : alertCount}
+              </span>
+            ) : null}
           </Link>
         </Button>
         <CopilotSheet />

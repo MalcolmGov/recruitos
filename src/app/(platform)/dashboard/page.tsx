@@ -95,16 +95,15 @@ export default async function DashboardPage() {
           label="Placements this month"
           value={data.kpis.placements.current}
           trend={data.kpis.placements}
-          chart={{ type: "bars", points: data.monthlyPlacements }}
+          points={data.activitySeries.placements}
           icon="handshake"
           tone="emerald"
           href="/placements"
-          hint="last 4 months · vs last month"
         />
         <KpiCard
           label="Candidates in play"
           value={data.kpis.pipelineActive}
-          chart={{ type: "area", points: data.weeklyApplications }}
+          points={data.weeklyApplications}
           icon="kanban"
           tone="blue"
           href="/pipeline"
@@ -113,21 +112,25 @@ export default async function DashboardPage() {
         <KpiCard
           label="Interviews in progress"
           value={data.kpis.interviewsActive}
-          chart={{ type: "donut", points: data.interviewsBreakdown }}
+          points={data.activitySeries.interviews}
           icon="calendar"
           tone="violet"
           href="/pipeline"
-          hint="by interview stage"
+          hint={
+            data.interviewsBreakdown
+              .filter((stage) => stage.value > 0)
+              .map((stage) => `${stage.value} ${stage.label.toLowerCase()}`)
+              .join(" · ") || "interview moves · 12 weeks"
+          }
         />
         <KpiCard
           label="New candidates this month"
           value={data.kpis.candidatesAdded.current}
           trend={data.kpis.candidatesAdded}
-          chart={{ type: "area", points: data.weeklyCandidates }}
+          points={data.weeklyCandidates}
           icon="user-plus"
           tone="amber"
           href="/candidates"
-          hint="candidates added · 12 weeks"
         />
       </div>
 

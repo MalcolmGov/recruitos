@@ -26,10 +26,10 @@ export function PipelineFunnel({
 
   return (
     <Card className="animate-fade-up">
-      <CardHeader className="flex flex-row items-baseline justify-between">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Pipeline funnel</CardTitle>
-        <span className="text-muted-foreground text-xs">
-          {total} candidate{total === 1 ? "" : "s"} tracked
+        <span className="text-muted-foreground border-input rounded-lg border px-2.5 py-1 text-xs">
+          {total} candidate{total === 1 ? "" : "s"} · all jobs
         </span>
       </CardHeader>
       <CardContent>

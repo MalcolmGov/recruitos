@@ -40,12 +40,12 @@ export function CommandPalette() {
     <>
       <Button
         variant="outline"
-        className="text-muted-foreground h-8 w-56 justify-between px-3 font-normal max-md:w-8 max-md:justify-center max-md:px-0"
+        className="text-muted-foreground h-8 w-80 justify-between px-3 font-normal max-lg:w-56 max-md:w-8 max-md:justify-center max-md:px-0"
         onClick={() => setOpen(true)}
       >
-        <span className="flex items-center gap-2">
-          <Search className="h-4 w-4" />
-          <span className="max-md:hidden">Search…</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="truncate max-md:hidden">Search candidates, jobs, clients…</span>
         </span>
         <kbd className="bg-muted text-muted-foreground pointer-events-none rounded border px-1.5 font-mono text-[10px] max-md:hidden">
           ⌘K
@@ -53,7 +53,7 @@ export function CommandPalette() {
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>
-          <CommandInput placeholder="Search modules, actions…" />
+          <CommandInput placeholder="Search candidates, jobs, clients, actions…" />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             {navigation.map((group) => (

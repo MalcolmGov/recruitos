@@ -36,6 +36,7 @@ export type Insight = {
   detail: string;
   href: string;
   cta: string;
+  at?: Date;
 };
 
 const INTERVIEW_STAGES: HiringStage[] = ["interview_1", "interview_2", "technical"];
@@ -87,6 +88,8 @@ export async function getDashboardData(organizationId: string) {
     monthlyPlacementRows,
     weeklyPlacementRows,
     weeklyOfferMoveRows,
+    weeklyScreeningMoveRows,
+    weeklyInterviewMoveRows,
     stats12wk,
     topJobRows,
     jobsNeedingCandidates,
@@ -226,6 +229,36 @@ export async function getDashboardData(organizationId: string) {
         ),
       )
       .groupBy(sql`date_trunc('week', ${auditLogs.createdAt})`),
+    db
+      .select({
+        week: sql<string>`to_char(date_trunc('week', ${auditLogs.createdAt}), 'YYYY-MM-DD')`,
+        value: count(),
+      })
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.organizationId, organizationId),
+          eq(auditLogs.action, "pipeline.moved"),
+          sql`${auditLogs.metadata}->>'stage' = 'screening'`,
+          gte(auditLogs.createdAt, twelveWeeksAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('week', ${auditLogs.createdAt})`),
+    db
+      .select({
+        week: sql<string>`to_char(date_trunc('week', ${auditLogs.createdAt}), 'YYYY-MM-DD')`,
+        value: count(),
+      })
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.organizationId, organizationId),
+          eq(auditLogs.action, "pipeline.moved"),
+          sql`${auditLogs.metadata}->>'stage' in ('interview_1','interview_2','technical')`,
+          gte(auditLogs.createdAt, twelveWeeksAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('week', ${auditLogs.createdAt})`),
     Promise.all([
       db
         .select({ value: count() })
@@ -280,7 +313,7 @@ export async function getDashboardData(organizationId: string) {
     // Insight sources -----------------------------------------------------
     db.query.jobs.findMany({
       where: and(eq(jobs.organizationId, organizationId), eq(jobs.status, "open")),
-      columns: { id: true, title: true },
+      columns: { id: true, title: true, updatedAt: true },
       with: { applications: { columns: { id: true, stage: true } } },
     }),
     db.query.applications.findMany({
@@ -289,7 +322,7 @@ export async function getDashboardData(organizationId: string) {
         inArray(applications.stage, ACTIVE_STAGES),
         lt(applications.updatedAt, new Date(Date.now() - 14 * 24 * 3600 * 1000)),
       ),
-      columns: { id: true, stage: true },
+      columns: { id: true, stage: true, updatedAt: true },
       with: {
         candidate: { columns: { name: true } },
         job: { columns: { id: true, title: true } },
@@ -309,7 +342,7 @@ export async function getDashboardData(organizationId: string) {
     }),
     db.query.jobs.findMany({
       where: and(eq(jobs.organizationId, organizationId), eq(jobs.status, "draft")),
-      columns: { id: true, title: true },
+      columns: { id: true, title: true, updatedAt: true },
       limit: 3,
     }),
   ]);
@@ -361,6 +394,7 @@ export async function getDashboardData(organizationId: string) {
         detail: "An open role with no active candidates. Run AI matching to build a shortlist.",
         href: "/jobs",
         cta: "Run AI match",
+        at: job.updatedAt,
       });
     }
   }
@@ -368,9 +402,10 @@ export async function getDashboardData(organizationId: string) {
     insights.push({
       severity: "action",
       title: `Offer out: ${offer.candidate.name}`,
-      detail: `${offer.job.title} — chase the decision before momentum fades.`,
+      detail: `${offer.job.title} — decision pending.`,
       href: `/pipeline?job=${offer.job.id}`,
       cta: "Open pipeline",
+      at: offer.updatedAt,
     });
   }
   for (const stale of staleApplications) {
@@ -380,6 +415,7 @@ export async function getDashboardData(organizationId: string) {
       detail: `No movement in 14+ days at ${stale.stage.replace(/_/g, " ")} for ${stale.job.title}.`,
       href: `/pipeline?job=${stale.job.id}`,
       cta: "Review",
+      at: stale.updatedAt,
     });
   }
   for (const draft of draftJobs) {
@@ -389,6 +425,7 @@ export async function getDashboardData(organizationId: string) {
       detail: "Not visible on your job board yet — publish when it's ready.",
       href: "/jobs",
       cta: "Open jobs",
+      at: draft.updatedAt,
     });
   }
   const monthlyAllowance = PLANS[planId].monthlyAiCredits;
@@ -462,6 +499,8 @@ export async function getDashboardData(organizationId: string) {
     interviewsBreakdown,
     activitySeries: {
       applications: series,
+      screenings: fillWeeks(weeklyScreeningMoveRows),
+      interviews: fillWeeks(weeklyInterviewMoveRows),
       offers: fillWeeks(weeklyOfferMoveRows),
       placements: fillWeeks(weeklyPlacementRows),
     },
