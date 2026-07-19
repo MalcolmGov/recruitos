@@ -8,6 +8,7 @@ import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ActivityTimeline, TopJobs } from "@/components/dashboard/side-cards";
 import {
   ActionQueue,
+  DailyBriefingHero,
   ForecastCard,
   RiskPanel,
   TickerStrip,
@@ -75,19 +76,14 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-up flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {greeting}, {session.user.name.split(" ")[0]} 👋
-          </h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {new Date().toLocaleDateString("en-GB", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}{" "}
-            · here&apos;s your desk at a glance.
-          </p>
-        </div>
+        <p className="text-muted-foreground text-sm">
+          {new Date().toLocaleDateString("en-GB", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}{" "}
+          · your desk at a glance
+        </p>
         <Link
           href="/billing"
           className="text-muted-foreground hover:text-foreground text-xs transition-colors"
@@ -98,6 +94,12 @@ export default async function DashboardPage() {
           </Badge>
         </Link>
       </div>
+
+      <DailyBriefingHero
+        daily={intel.daily}
+        greeting={greeting}
+        firstName={session.user.name.split(" ")[0]}
+      />
 
       <TickerStrip items={intel.ticker} />
 

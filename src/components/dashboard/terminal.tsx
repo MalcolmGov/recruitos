@@ -5,14 +5,117 @@ import {
   Flame,
   Gauge,
   ListTodo,
+  Sparkles,
   TrendingUp,
+  TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Forecast, JobRisk, NextAction, StageVelocity, TickerItem } from "@/server/intelligence";
+import type {
+  DailyBriefing,
+  Forecast,
+  JobRisk,
+  NextAction,
+  StageVelocity,
+  TickerItem,
+} from "@/server/intelligence";
 import { cn } from "@/lib/utils";
+
+const gbp = (value: number) =>
+  new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+// ------------------------------------------------------ daily briefing ---
+
+export function DailyBriefingHero({
+  daily,
+  greeting,
+  firstName,
+}: {
+  daily: DailyBriefing;
+  greeting: string;
+  firstName: string;
+}) {
+  return (
+    <Card className="animate-fade-up relative overflow-hidden">
+      <div className="gradient-ai absolute inset-x-0 top-0 h-0.5" />
+      <CardContent className="grid gap-6 px-6 lg:grid-cols-[1.2fr_1fr_1fr]">
+        <div>
+          <p className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] uppercase">
+            <Sparkles className="size-3" /> AI daily briefing
+          </p>
+          <p className="mt-2 text-sm">
+            {greeting}, {firstName} 👋
+          </p>
+          <p className="text-muted-foreground mt-3 text-xs">Today your desk is worth</p>
+          <p className="mt-1 font-mono text-[2.75rem] leading-none font-semibold tracking-tight tabular-nums">
+            {gbp(daily.deskValue)}
+          </p>
+          <p className="text-muted-foreground mt-2 text-xs">
+            <span className="text-foreground font-mono font-semibold">
+              {gbp(daily.expectedValue)}
+            </span>{" "}
+            expected (stage-weighted) across {daily.valuedCandidates} candidate
+            {daily.valuedCandidates === 1 ? "" : "s"}
+          </p>
+          <p className="text-muted-foreground/70 mt-1 text-[10px]">{daily.assumption}</p>
+        </div>
+
+        <div className="lg:border-l lg:pl-6">
+          <p className="text-success flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] uppercase">
+            <TrendingUp className="size-3" /> Today&apos;s opportunities
+          </p>
+          <ul className="mt-3 space-y-2.5">
+            {daily.opportunities.map((opportunity) => (
+              <li key={opportunity.label} className="text-sm">
+                <span className="block font-medium capitalize">{opportunity.label}</span>
+                <span className="text-muted-foreground font-mono text-xs">
+                  {opportunity.value}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="lg:border-l lg:pl-6">
+          <p className="text-destructive flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] uppercase">
+            <TriangleAlert className="size-3" /> Risks
+          </p>
+          {daily.risks.length === 0 ? (
+            <p className="text-muted-foreground mt-3 text-sm">No live risk signals.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {daily.risks.map((risk) => (
+                <li key={risk.label}>
+                  <Link
+                    href={risk.href}
+                    className="text-muted-foreground hover:text-foreground flex items-start gap-2 text-xs leading-snug transition-colors"
+                  >
+                    <span className="bg-destructive mt-1 size-1.5 shrink-0 rounded-full" />
+                    {risk.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {daily.quickActions.map((action) => (
+              <Button key={action.label} asChild size="sm" variant="outline" className="h-7 text-xs">
+                <Link href={action.href}>{action.label}</Link>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 /**
  * Terminal surfaces: the ticker, the ranked action queue, job risk and the

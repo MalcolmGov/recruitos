@@ -102,7 +102,19 @@ export type TickerItem = {
   tone?: "positive" | "negative" | "neutral";
 };
 
+export type DailyBriefing = {
+  deskValue: number;
+  expectedValue: number;
+  expectedPlacements: number;
+  valuedCandidates: number;
+  assumption: string;
+  opportunities: { label: string; value: string }[];
+  risks: { label: string; href: string }[];
+  quickActions: { label: string; href: string }[];
+};
+
 export type Intelligence = {
+  daily: DailyBriefing;
   actions: NextAction[];
   jobRisks: JobRisk[];
   forecast: Forecast;
@@ -110,6 +122,23 @@ export type Intelligence = {
   ticker: TickerItem[];
   briefing: string[];
 };
+
+/**
+ * Stage-progression weights for expected value — a stated heuristic, not a
+ * learned model. Shown to the user as "stage-weighted".
+ */
+const STAGE_WEIGHT: Record<string, number> = {
+  applied: 0.05,
+  screening: 0.1,
+  interview_1: 0.2,
+  interview_2: 0.35,
+  technical: 0.45,
+  references: 0.6,
+  offer: 0.75,
+};
+
+/** Assumed agency fee as a share of salary midpoint until fees are configured per client. */
+const ASSUMED_FEE_RATE = 0.18;
 
 const gbp = (value: number) =>
   new Intl.NumberFormat("en-GB", {
@@ -128,7 +157,15 @@ export async function getIntelligence(organizationId: string): Promise<Intellige
     await Promise.all([
       db.query.jobs.findMany({
         where: and(eq(jobs.organizationId, organizationId), eq(jobs.status, "open")),
-        columns: { id: true, title: true, createdAt: true, updatedAt: true },
+        columns: {
+          id: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          type: true,
+          salaryMin: true,
+          salaryMax: true,
+        },
         with: {
           clientCompany: { columns: { name: true } },
           applications: { columns: { id: true, stage: true, updatedAt: true } },
@@ -410,5 +447,105 @@ export async function getIntelligence(organizationId: string): Promise<Intellige
     );
   }
 
-  return { actions: rankedActions, jobRisks, forecast, velocity, ticker, briefing };
+  // ------------------------------------------------------- daily briefing ---
+  // Desk value: estimated fee per active candidate on salaried open roles.
+  // Contract roles are counted but not valued — day-rate margins aren't known.
+  let deskValue = 0;
+  let expectedValue = 0;
+  let expectedPlacements = 0;
+  let valuedCandidates = 0;
+  const activeStageSet = new Set(Object.keys(STAGE_WEIGHT));
+  for (const job of openJobs) {
+    const mid =
+      job.salaryMin && job.salaryMax
+        ? (job.salaryMin + job.salaryMax) / 2
+        : (job.salaryMin ?? job.salaryMax ?? 0);
+    const estFee = job.type !== "contract" && mid > 0 ? mid * ASSUMED_FEE_RATE : 0;
+    for (const app of job.applications) {
+      if (!activeStageSet.has(app.stage)) continue;
+      expectedPlacements += STAGE_WEIGHT[app.stage];
+      if (estFee > 0) {
+        deskValue += estFee;
+        expectedValue += estFee * STAGE_WEIGHT[app.stage];
+        valuedCandidates += 1;
+      }
+    }
+  }
+
+  const offersValue = openJobs.reduce((sum, job) => {
+    const mid =
+      job.salaryMin && job.salaryMax
+        ? (job.salaryMin + job.salaryMax) / 2
+        : (job.salaryMin ?? job.salaryMax ?? 0);
+    const estFee = job.type !== "contract" && mid > 0 ? mid * ASSUMED_FEE_RATE : 0;
+    return sum + job.applications.filter((a) => a.stage === "offer").length * estFee;
+  }, 0);
+
+  const coldOffers = activeApps.filter((a) => a.stage === "offer" && days(a.updatedAt) >= 5);
+  const withdrawalRisk = activeApps.filter(
+    (a) => a.stage !== "offer" && days(a.updatedAt) >= 21,
+  );
+  const stalledInterviews = activeApps.filter(
+    (a) =>
+      ["interview_1", "interview_2", "technical"].includes(a.stage) && days(a.updatedAt) >= 7,
+  );
+  const emptyPipelines = openJobs.filter(
+    (job) =>
+      job.applications.filter((a) => a.stage !== "rejected" && a.stage !== "placed").length === 0,
+  );
+
+  const dailyRisks: DailyBriefing["risks"] = [];
+  if (coldOffers.length > 0) {
+    dailyRisks.push({
+      label: `${coldOffers.length} offer${coldOffers.length === 1 ? "" : "s"} going cold (5d+ without a decision)`,
+      href: "/pipeline",
+    });
+  }
+  if (withdrawalRisk.length > 0) {
+    dailyRisks.push({
+      label: `${withdrawalRisk.length} candidate${withdrawalRisk.length === 1 ? "" : "s"} at withdrawal risk (21d+ without movement)`,
+      href: "/pipeline",
+    });
+  }
+  if (stalledInterviews.length > 0) {
+    dailyRisks.push({
+      label: `${stalledInterviews.length} interview${stalledInterviews.length === 1 ? "" : "s"} stalled 7d+ — schedule or release`,
+      href: "/pipeline",
+    });
+  }
+  if (emptyPipelines.length > 0) {
+    dailyRisks.push({
+      label: `${emptyPipelines.length} open role${emptyPipelines.length === 1 ? "" : "s"} with an empty pipeline`,
+      href: "/jobs",
+    });
+  }
+
+  const quickActions: DailyBriefing["quickActions"] = [];
+  if (offersOut > 0) quickActions.push({ label: "Chase offers", href: "/pipeline" });
+  if (emptyPipelines.length > 0) quickActions.push({ label: "Build shortlists", href: "/jobs" });
+  if (withdrawalRisk.length > 0 || stalledInterviews.length > 0)
+    quickActions.push({ label: "Unblock pipeline", href: "/pipeline" });
+  if (quickActions.length < 3) quickActions.push({ label: "Ask the copilot", href: "/dashboard" });
+
+  const daily: DailyBriefing = {
+    deskValue: Math.round(deskValue),
+    expectedValue: Math.round(expectedValue),
+    expectedPlacements: Math.round(expectedPlacements * 10) / 10,
+    valuedCandidates,
+    assumption: `assumes ${Math.round(ASSUMED_FEE_RATE * 100)}% fee on salary midpoint · salaried roles only`,
+    opportunities: [
+      {
+        label: `${offersOut} offer${offersOut === 1 ? "" : "s"} in play`,
+        value: offersValue > 0 ? `worth ~${gbp(Math.round(offersValue))}` : "value unpriced",
+      },
+      {
+        label: "expected placements from current pipeline",
+        value: `${Math.round(expectedPlacements * 10) / 10} (stage-weighted)`,
+      },
+    ],
+    risks: dailyRisks.slice(0, 4),
+    quickActions: quickActions.slice(0, 3),
+  };
+
+  return { daily, actions: rankedActions, jobRisks, forecast, velocity, ticker, briefing };
 }
