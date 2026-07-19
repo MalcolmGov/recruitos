@@ -7,7 +7,7 @@
  */
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import { db } from "../src/db";
 import {
@@ -96,6 +96,7 @@ async function main() {
     .onConflictDoNothing();
 
   await seedAts(org.id, recruiter.id);
+  await seedHistory(org.id, recruiter.id);
 
   console.log(`Seeded tenant "${org.name}" with owner + recruiter.`);
   console.log(`Sign in: admin@demo.recruitos.dev / ${DEMO_PASSWORD}`);
@@ -191,6 +192,130 @@ async function seedAts(organizationId: string, recruiterId: string) {
   });
 
   console.log("Seeded ATS sample data (3 clients, 4 jobs, 5 candidates, 5 applications, 1 placement).");
+}
+
+function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * 24 * 3600 * 1000);
+}
+
+/**
+ * Three months of backdated history so trends, sparklines and charts have
+ * something true to show. Skipped once the pool is already deep.
+ */
+async function seedHistory(organizationId: string, recruiterId: string) {
+  const existing = await db.query.candidates.findMany({
+    where: eq(candidates.organizationId, organizationId),
+    columns: { id: true },
+  });
+  if (existing.length >= 12) return;
+
+  const histClients = await db.query.clientCompanies.findMany({
+    where: eq(clientCompanies.organizationId, organizationId),
+    columns: { id: true },
+  });
+  const clientA = histClients[0]?.id ?? null;
+  const clientB = histClients[1]?.id ?? null;
+
+  // Two historical roles, both filled.
+  const histJobs = [
+    {
+      id: randomUUID(), organizationId, clientCompanyId: clientA, recruiterId,
+      title: "Platform Engineer", type: "permanent" as const, workMode: "remote" as const,
+      location: "London (remote from SA)", salaryMin: 70000, salaryMax: 85000, currency: "GBP",
+      status: "filled" as const, published: false, tags: ["Go", "Kubernetes"],
+      description: "Platform team build-out.", createdAt: daysAgo(95),
+    },
+    {
+      id: randomUUID(), organizationId, clientCompanyId: clientB, recruiterId,
+      title: "Financial Analyst", type: "permanent" as const, workMode: "remote" as const,
+      location: "Leeds (remote from SA)", salaryMin: 40000, salaryMax: 48000, currency: "GBP",
+      status: "filled" as const, published: false, tags: ["Excel", "SQL"],
+      description: "FP&A support.", createdAt: daysAgo(80),
+    },
+  ];
+  await db.insert(jobs).values(histJobs);
+
+  const sources = ["LinkedIn", "Referral", "Job board", "Database", "CV import"];
+  const names: Array<[string, string, string[]]> = [
+    ["Lerato Ndlovu", "Platform Engineer", ["Go", "Kubernetes", "AWS"]],
+    ["Johan Steyn", "Backend Developer", ["Go", "Postgres", "Docker"]],
+    ["Naledi Khumalo", "Financial Analyst", ["Excel", "SQL", "Power BI"]],
+    ["Ryan Naidoo", "Frontend Developer", ["React", "TypeScript", "CSS"]],
+    ["Zanele Mthembu", "QA Engineer", ["Cypress", "Playwright", "API testing"]],
+    ["Dean van Wyk", "Data Analyst", ["SQL", "Python", "Tableau"]],
+    ["Precious Mabena", "Customer Success Manager", ["SaaS", "Onboarding", "Renewals"]],
+    ["Kyle Petersen", "DevOps Engineer", ["AWS", "Terraform", "CI/CD"]],
+    ["Anika Pillay", "Product Designer", ["Figma", "Design systems", "Prototyping"]],
+    ["Sibusiso Zulu", "Fullstack Developer", ["React", "Node", "Postgres"]],
+  ];
+  const histCandidates = names.map(([name, title, skills], index) => ({
+    id: randomUUID(),
+    organizationId,
+    name,
+    email: `${name.toLowerCase().replace(/[^a-z]+/g, ".")}@example.dev`,
+    currentTitle: title,
+    location: index % 2 === 0 ? "Johannesburg" : "Cape Town",
+    skills,
+    salaryExpectation: 42000 + index * 3500,
+    currency: "GBP",
+    ukWorkEligibility: "remote_no_visa" as const,
+    noticePeriod: index % 3 === 0 ? "Immediate" : "30 days",
+    source: sources[index % sources.length],
+    consentAt: daysAgo(84 - index * 8),
+    createdAt: daysAgo(84 - index * 8),
+    status: "active" as const,
+  }));
+  await db.insert(candidates).values(histCandidates);
+
+  // Applications spread across the last 12 weeks; some journeys completed.
+  const stagesJourney = [
+    "rejected", "placed", "rejected", "screening", "placed",
+    "interview_1", "rejected", "placed", "offer", "applied",
+  ] as const;
+  const histApplications = histCandidates.map((candidate, index) => ({
+    id: randomUUID(),
+    organizationId,
+    jobId: histJobs[index % 2].id,
+    candidateId: candidate.id,
+    stage: stagesJourney[index],
+    createdAt: daysAgo(80 - index * 7),
+    updatedAt: daysAgo(Math.max(2, 60 - index * 6)),
+  }));
+  await db.insert(applications).values(histApplications);
+
+  // Historical placements with fees over the last three months.
+  const placedApps = histApplications.filter((application) => application.stage === "placed");
+  const feeByIndex = [21000, 13200, 18750];
+  await db.insert(placements).values(
+    placedApps.map((application, index) => ({
+      id: randomUUID(),
+      organizationId,
+      applicationId: application.id,
+      jobId: application.jobId,
+      candidateId: application.candidateId,
+      recruiterId,
+      salary: 70000 - index * 9000,
+      currency: "GBP",
+      fee: feeByIndex[index % feeByIndex.length],
+      feeCurrency: "GBP",
+      status: index === 0 ? ("completed" as const) : ("active" as const),
+      startDate: daysAgo(70 - index * 25),
+      createdAt: daysAgo(75 - index * 28),
+    })),
+  );
+  await db
+    .update(candidates)
+    .set({ status: "placed" })
+    .where(
+      inArray(
+        candidates.id,
+        placedApps.map((application) => application.candidateId),
+      ),
+    );
+
+  console.log(
+    `Seeded history: 2 filled jobs, ${histCandidates.length} candidates, ${histApplications.length} applications, ${placedApps.length} placements.`,
+  );
 }
 
 main().catch((error) => {

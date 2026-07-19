@@ -2,6 +2,11 @@ import { Briefcase, Handshake, Users } from "lucide-react";
 import Link from "next/link";
 
 import { AttentionPanel } from "@/components/dashboard/attention-panel";
+import {
+  ActivityAreaChart,
+  MonthlyPlacementsBars,
+  SourceDonut,
+} from "@/components/dashboard/charts";
 import { PipelineFunnel } from "@/components/dashboard/funnel";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -116,11 +121,17 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <PipelineFunnel funnel={data.funnel} total={data.inPipeline} />
+          <ActivityAreaChart points={data.weeklyApplications} />
         </div>
         <div className="lg:col-span-2">
           <AttentionPanel insights={data.insights} />
         </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <PipelineFunnel funnel={data.funnel} total={data.inPipeline} />
+        <MonthlyPlacementsBars months={data.monthlyPlacements} />
+        <SourceDonut slices={data.sources} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

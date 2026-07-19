@@ -91,6 +91,12 @@
   --sidebar-accent-foreground: oklch(0.42 0.15 262.88);
   --sidebar-border: oklch(0.922 0.008 262);
   --sidebar-ring: oklch(0.546 0.215 262.88);
+  /* Categorical chart palette — validated (dataviz six-checks, light surface) */
+  --cat-1: #2563eb;
+  --cat-2: #d97706;
+  --cat-3: #7c3aed;
+  --cat-4: #059669;
+  --cat-5: #0891b2;
 }
 
 .dark {
@@ -127,6 +133,12 @@
   --sidebar-accent-foreground: oklch(0.88 0.06 262);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.63 0.19 262.88);
+  /* Categorical chart palette — validated (dataviz six-checks, dark surface) */
+  --cat-1: #5b8def;
+  --cat-2: #d97706;
+  --cat-3: #8b5cf6;
+  --cat-4: #059669;
+  --cat-5: #0891b2;
 }
 
 @layer base {

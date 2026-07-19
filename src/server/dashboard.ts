@@ -60,7 +60,8 @@ function monthStart(offsetMonths = 0): Date {
 export async function getDashboardData(organizationId: string) {
   const thisMonth = monthStart();
   const lastMonth = monthStart(-1);
-  const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 24 * 3600 * 1000);
+  const twelveWeeksAgo = new Date(Date.now() - 12 * 7 * 24 * 3600 * 1000);
+  const fourMonthsAgo = monthStart(-3);
 
   const countWhere = async (table: typeof placements | typeof candidates, extra: ReturnType<typeof and>) => {
     const [row] = await db.select({ value: count() }).from(table).where(extra);
@@ -81,6 +82,8 @@ export async function getDashboardData(organizationId: string) {
     activity,
     balance,
     planId,
+    sourceRows,
+    monthlyPlacementRows,
     jobsNeedingCandidates,
     staleApplications,
     offersOpen,
@@ -143,7 +146,7 @@ export async function getDashboardData(organizationId: string) {
       .where(
         and(
           eq(applications.organizationId, organizationId),
-          gte(applications.createdAt, eightWeeksAgo),
+          gte(applications.createdAt, twelveWeeksAgo),
         ),
       )
       .groupBy(sql`date_trunc('week', ${applications.createdAt})`)
@@ -156,6 +159,26 @@ export async function getDashboardData(organizationId: string) {
     }),
     getCreditBalance(organizationId),
     getTenantPlan(organizationId),
+    db
+      .select({ source: candidates.source, value: count() })
+      .from(candidates)
+      .where(eq(candidates.organizationId, organizationId))
+      .groupBy(candidates.source),
+    db
+      .select({
+        month: sql<string>`to_char(date_trunc('month', ${placements.createdAt}), 'YYYY-MM')`,
+        value: count(),
+        fees: sql<string>`coalesce(sum(${placements.fee}), 0)`,
+      })
+      .from(placements)
+      .where(
+        and(
+          eq(placements.organizationId, organizationId),
+          gte(placements.createdAt, fourMonthsAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('month', ${placements.createdAt})`)
+      .orderBy(sql`date_trunc('month', ${placements.createdAt})`),
     // Insight sources -----------------------------------------------------
     db.query.jobs.findMany({
       where: and(eq(jobs.organizationId, organizationId), eq(jobs.status, "open")),
@@ -217,10 +240,10 @@ export async function getDashboardData(organizationId: string) {
     };
   });
 
-  // 8-week series with empty weeks filled.
+  // 12-week series with empty weeks filled.
   const weekMap = new Map(weeklyApplications.map((row) => [row.week, row.value]));
   const series: number[] = [];
-  for (let i = 7; i >= 0; i--) {
+  for (let i = 11; i >= 0; i--) {
     const week = new Date(Date.now() - i * 7 * 24 * 3600 * 1000);
     // Normalize to ISO week start (Monday) to match date_trunc('week').
     const day = week.getDay();
@@ -281,7 +304,32 @@ export async function getDashboardData(organizationId: string) {
     });
   }
 
+  // Candidates by source: top 4 + Other (fixed slice order = fixed hue order).
+  const sortedSources = [...sourceRows]
+    .map((row) => ({ label: row.source ?? "Unknown", value: row.value }))
+    .sort((a, b) => b.value - a.value);
+  const topSources = sortedSources.slice(0, 4);
+  const otherTotal = sortedSources.slice(4).reduce((total, row) => total + row.value, 0);
+  const sources = otherTotal > 0 ? [...topSources, { label: "Other", value: otherTotal }] : topSources;
+
+  // Last 4 calendar months of placements, empty months filled.
+  const monthMap = new Map(
+    monthlyPlacementRows.map((row) => [row.month, { value: row.value, fees: Number(row.fees) }]),
+  );
+  const monthlyPlacements = Array.from({ length: 4 }, (_, index) => {
+    const date = monthStart(index - 3);
+    const key = date.toISOString().slice(0, 7);
+    const entry = monthMap.get(key);
+    return {
+      label: date.toLocaleDateString("en-GB", { month: "short" }),
+      value: entry?.value ?? 0,
+      fees: entry?.fees ?? 0,
+    };
+  });
+
   return {
+    sources,
+    monthlyPlacements,
     kpis: {
       openJobs,
       activeCandidates,
