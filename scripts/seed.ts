@@ -41,9 +41,20 @@ async function ensureMembership(organizationId: string, userId: string, role: st
   });
 }
 
+async function ensureUserWithPassword(name: string, email: string, password: string) {
+  const existing = await db.query.user.findFirst({ where: eq(user.email, email) });
+  if (existing) return existing;
+  await auth.api.signUpEmail({ body: { name, email, password } });
+  const created = await db.query.user.findFirst({ where: eq(user.email, email) });
+  if (!created) throw new Error(`Failed to create user ${email}`);
+  return created;
+}
+
 async function main() {
   const owner = await ensureUser("Malcolm Govender", "admin@demo.recruitos.dev");
   const recruiter = await ensureUser("Ryan Peters", "recruiter@demo.recruitos.dev");
+  // Simple local-dev login (owner role): malcolm@recruitos.dev / password123
+  const malcolm = await ensureUserWithPassword("Malcolm", "malcolm@recruitos.dev", "password123");
 
   let org = await db.query.organization.findFirst({
     where: eq(organization.slug, ORG_SLUG),
@@ -63,6 +74,7 @@ async function main() {
 
   await ensureMembership(org.id, owner.id, "owner");
   await ensureMembership(org.id, recruiter.id, "recruiter");
+  await ensureMembership(org.id, malcolm.id, "owner");
 
   await db
     .insert(tenantSettings)
