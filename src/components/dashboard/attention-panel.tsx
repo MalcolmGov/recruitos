@@ -28,8 +28,8 @@ export function AttentionPanel({ insights }: { insights: Insight[] }) {
           </div>
         ) : (
           <ul className="space-y-1">
-            {insights.map((insight) => (
-              <li key={insight.title}>
+            {insights.map((insight, index) => (
+              <li key={`${index}-${insight.title}`}>
                 <Link
                   href={insight.href}
                   className="group hover:bg-accent/60 -mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors"

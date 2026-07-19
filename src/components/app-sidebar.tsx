@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, Flame, LogOut } from "lucide-react";
+import { ChevronsUpDown, Flame, LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -33,9 +33,10 @@ type AppSidebarProps = {
   tenantName: string;
   user: { name: string; email: string };
   pipelineCount?: number;
+  isPlatformAdmin?: boolean;
 };
 
-export function AppSidebar({ tenantName, user, pipelineCount }: AppSidebarProps) {
+export function AppSidebar({ tenantName, user, pipelineCount, isPlatformAdmin }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -129,6 +130,14 @@ export function AppSidebar({ tenantName, user, pipelineCount }: AppSidebarProps)
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isPlatformAdmin ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      Platform console
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out

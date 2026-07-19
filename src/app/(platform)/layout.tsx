@@ -5,6 +5,7 @@ import { AppTopbar } from "@/components/app-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { db } from "@/db";
 import { applications, organization } from "@/db/schema";
+import { isPlatformAdminEmail } from "@/lib/platform-admin";
 import { requireTenant } from "@/lib/session";
 
 export default async function PlatformLayout({
@@ -36,6 +37,7 @@ export default async function PlatformLayout({
         tenantName={tenant?.name ?? "Workspace"}
         user={{ name: session.user.name, email: session.user.email }}
         pipelineCount={pipelineRows[0]?.value ?? 0}
+        isPlatformAdmin={isPlatformAdminEmail(session.user.email)}
       />
       <SidebarInset>
         <AppTopbar />

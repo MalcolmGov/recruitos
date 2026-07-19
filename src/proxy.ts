@@ -29,6 +29,7 @@ export const config = {
     "/settings/:path*",
     "/billing/:path*",
     "/integrations/:path*",
+    "/admin/:path*",
     "/onboarding",
   ],
 };
