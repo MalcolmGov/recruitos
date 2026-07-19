@@ -5,7 +5,8 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { inquiries } from "@/db/schema";
+import { inquiries, organization } from "@/db/schema";
+import { notify } from "@/server/notify";
 
 const inquirySchema = z.object({
   name: z.string().min(2).max(200),
@@ -32,6 +33,16 @@ export async function submitInquiry(input: unknown): Promise<InquiryResult> {
     message: parsed.data.message,
   });
 
-  // Email notification (Resend) is wired up in the communications phase.
+  // Single-tenant bridge: while the marketing site belongs to the flagship
+  // tenant, route enquiry notifications there. The website-builder phase maps
+  // domains to tenants properly.
+  const orgs = await db.select({ id: organization.id }).from(organization).limit(2);
+  if (orgs.length === 1) {
+    notify(orgs[0].id, "inquiry.received", {
+      name: parsed.data.name,
+      interest: parsed.data.interest,
+    });
+  }
+
   return { ok: true };
 }

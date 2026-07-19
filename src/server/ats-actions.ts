@@ -15,8 +15,10 @@ import {
   jobs,
   placements,
 } from "@/db/schema";
+import { STAGE_LABELS } from "@/lib/ats";
 import { recordAudit } from "@/lib/audit";
 import { requirePermission, requireTenant } from "@/lib/session";
+import { notify } from "@/server/notify";
 
 /**
  * ATS server actions. Every action: (1) resolves the tenant from the session,
@@ -142,6 +144,9 @@ export async function saveJob(input: unknown, jobId?: string): Promise<ActionRes
     entityId: id,
     metadata: { title: values.title, status: values.status },
   });
+  if (values.published && values.status === "open") {
+    notify(organizationId, "job.published", { title: values.title });
+  }
   revalidatePath("/jobs");
   revalidatePath("/browse-jobs");
   return { ok: true, id };
@@ -226,6 +231,7 @@ export async function saveCandidate(
     entityId: id,
     metadata: { name: values.name },
   });
+  if (!candidateId) notify(organizationId, "candidate.created", { name: values.name });
   revalidatePath("/candidates");
   return { ok: true, id };
 }
@@ -345,6 +351,18 @@ export async function moveApplicationStage(input: unknown): Promise<ActionResult
       stage: parsed.data.stage,
     },
   });
+  if (parsed.data.stage === "placed") {
+    notify(organizationId, "placement.created", {
+      candidate: application.candidate.name,
+      job: application.job.title,
+    });
+  } else {
+    notify(organizationId, "pipeline.moved", {
+      candidate: application.candidate.name,
+      job: application.job.title,
+      stageLabel: STAGE_LABELS[parsed.data.stage],
+    });
+  }
   revalidatePath("/pipeline");
   revalidatePath("/dashboard");
   return { ok: true };

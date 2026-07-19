@@ -43,9 +43,21 @@ export const auth = betterAuth({
       ac,
       roles: staffRoles,
       organizationLimit: 1,
-      // Invitation emails are wired up with Resend in the communications phase;
-      // until then invites are created and accepted in-app.
-      async sendInvitationEmail() {},
+      async sendInvitationEmail(data) {
+        const { sendEmail, emailLayout } = await import("../server/email");
+        const inviteLink = `${process.env.BETTER_AUTH_URL}/accept-invitation/${data.id}`;
+        await sendEmail({
+          organizationId: data.organization.id,
+          to: data.email,
+          subject: `You've been invited to ${data.organization.name} on RecruitOS`,
+          html: emailLayout(
+            `Join ${data.organization.name}`,
+            `<p>${data.inviter.user.name} has invited you to join <strong>${data.organization.name}</strong> as a ${data.role}.</p>
+             <p style="margin:24px 0;"><a href="${inviteLink}" style="background:#2563eb;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Accept invitation</a></p>
+             <p style="color:#8a8fa3;font-size:13px;">Or open this link: ${inviteLink}</p>`,
+          ),
+        });
+      },
     }),
     // Must stay last so cookies set inside server actions are applied.
     nextCookies(),
