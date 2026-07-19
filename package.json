@@ -14,6 +14,7 @@
     "auth:generate": "npx @better-auth/cli generate --config src/lib/auth.ts --output src/db/schema/auth.ts -y"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.3",
     "@base-ui/react": "^1.6.0",
     "@dnd-kit/core": "^6.3.1",
     "@tanstack/react-query": "^5.101.2",

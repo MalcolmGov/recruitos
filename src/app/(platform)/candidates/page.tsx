@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/ats";
 import { requireTenant } from "@/lib/session";
 
 import { CandidateFormSheet } from "./candidate-form";
+import { ImportCvDialog } from "./import-cv-dialog";
 
 export const metadata = { title: "Candidates" };
 
@@ -47,7 +48,10 @@ export default async function CandidatesPage() {
             {rows.filter((row) => row.status === "active").length} active
           </p>
         </div>
-        <CandidateFormSheet />
+        <div className="flex gap-2">
+          <ImportCvDialog />
+          <CandidateFormSheet />
+        </div>
       </div>
 
       <Card>

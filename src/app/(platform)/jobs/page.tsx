@@ -19,6 +19,7 @@ import { formatSalaryRange } from "@/lib/ats";
 import { requireTenant } from "@/lib/session";
 
 import { JobFormSheet } from "./job-form";
+import { MatchDialog } from "./match-dialog";
 
 export const metadata = { title: "Jobs" };
 
@@ -105,15 +106,18 @@ export default async function JobsPage() {
                       <Badge variant={statusVariant[row.status]}>{row.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      <JobFormSheet
-                        clients={clients}
-                        initial={row}
-                        trigger={
-                          <Button variant="ghost" size="icon" aria-label={`Edit ${row.title}`}>
-                            <Pencil className="size-4" />
-                          </Button>
-                        }
-                      />
+                      <div className="flex items-center">
+                        <MatchDialog jobId={row.id} jobTitle={row.title} />
+                        <JobFormSheet
+                          clients={clients}
+                          initial={row}
+                          trigger={
+                            <Button variant="ghost" size="icon" aria-label={`Edit ${row.title}`}>
+                              <Pencil className="size-4" />
+                            </Button>
+                          }
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

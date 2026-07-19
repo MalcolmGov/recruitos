@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 
 import { CommandPalette } from "@/components/command-palette";
+import { CopilotSheet } from "@/components/copilot-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -21,6 +22,7 @@ export function AppTopbar() {
       <h1 className="text-sm font-medium">{active?.title ?? "RecruitOS"}</h1>
       <div className="ml-auto flex items-center gap-2">
         <CommandPalette />
+        <CopilotSheet />
         <ThemeToggle />
       </div>
     </header>
