@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import { candidates } from "@/db/schema";
 import { formatMoney } from "@/lib/ats";
 import { requireTenant } from "@/lib/session";
 
+import { QuickSearch } from "@/components/quick-search";
+
 import { CandidateFormSheet } from "./candidate-form";
 import { ImportCvDialog } from "./import-cv-dialog";
 
@@ -29,11 +31,21 @@ const statusVariant = {
   archived: "outline",
 } as const;
 
-export default async function CandidatesPage() {
+export default async function CandidatesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const { organizationId } = await requireTenant();
+  const { q } = await searchParams;
 
   const rows = await db.query.candidates.findMany({
-    where: eq(candidates.organizationId, organizationId),
+    where: and(
+      eq(candidates.organizationId, organizationId),
+      q
+        ? or(ilike(candidates.name, `%${q}%`), ilike(candidates.currentTitle, `%${q}%`))
+        : undefined,
+    ),
     orderBy: [desc(candidates.updatedAt)],
     with: { applications: { columns: { id: true, stage: true } } },
   });
@@ -48,7 +60,8 @@ export default async function CandidatesPage() {
             {rows.filter((row) => row.status === "active").length} active
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <QuickSearch placeholder="Search candidates…" />
           <ImportCvDialog />
           <CandidateFormSheet />
         </div>

@@ -7,7 +7,7 @@ import type { Article, CaseStudy, Job } from "@/content/site";
 
 export function JobCard({ job }: { job: Job }) {
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className="card-lift">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-base">{job.title}</CardTitle>
@@ -43,7 +43,7 @@ export function JobCard({ job }: { job: Job }) {
 
 export function ArticleCard({ article }: { article: Article }) {
   return (
-    <Card className="flex flex-col transition-shadow hover:shadow-md">
+    <Card className="card-lift flex flex-col">
       <CardHeader className="pb-3">
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
           <Badge variant="secondary">{article.category}</Badge>
@@ -76,7 +76,7 @@ export function ArticleCard({ article }: { article: Article }) {
 
 export function CaseStudyCard({ study }: { study: CaseStudy }) {
   return (
-    <Card className="flex flex-col transition-shadow hover:shadow-md">
+    <Card className="card-lift flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{study.industry}</Badge>

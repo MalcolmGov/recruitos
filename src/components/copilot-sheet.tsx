@@ -56,14 +56,24 @@ export function CopilotSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Open AI copilot">
-          <Sparkles className="size-4" />
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Open AI copilot"
+          className="hover:shadow-glow transition-shadow"
+        >
+          <span className="gradient-ai flex size-5 items-center justify-center rounded-md text-white">
+            <Sparkles className="size-3" />
+          </span>
         </Button>
       </SheetTrigger>
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <Sparkles className="text-primary size-4" /> Copilot
+            <span className="gradient-ai flex size-6 items-center justify-center rounded-lg text-white">
+              <Sparkles className="size-3.5" />
+            </span>
+            Copilot
           </SheetTitle>
           <SheetDescription>
             Ask about your candidates, jobs, pipeline and placements.

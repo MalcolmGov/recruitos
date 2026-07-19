@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +47,17 @@ import { BOARD_STAGES, STAGE_LABELS } from "@/lib/ats";
 import { cn } from "@/lib/utils";
 import { addToPipeline, moveApplicationStage } from "@/server/ats-actions";
 
+/** Sequential accent per active stage (magnitude of progress, single hue). */
+const STAGE_OPACITY: Partial<Record<HiringStage, string>> = {
+  applied: "opacity-30",
+  screening: "opacity-45",
+  interview_1: "opacity-60",
+  interview_2: "opacity-70",
+  technical: "opacity-80",
+  references: "opacity-90",
+  offer: "opacity-100",
+};
+
 export type BoardApplication = {
   id: string;
   stage: HiringStage;
@@ -72,16 +84,28 @@ function ApplicationCard({
           : undefined
       }
       className={cn(
-        "bg-card rounded-lg border p-3 shadow-xs",
+        "bg-card card-lift rounded-lg border p-3 shadow-xs",
         isDragging && "z-50 opacity-80 shadow-md",
       )}
     >
       <div className="flex items-start justify-between gap-1">
-        <div>
-          <p className="text-sm font-medium">{application.candidate.name}</p>
-          <p className="text-muted-foreground text-xs">
-            {application.candidate.currentTitle ?? "—"}
-          </p>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Avatar className="size-7 shrink-0">
+            <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-semibold">
+              {application.candidate.name
+                .split(" ")
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{application.candidate.name}</p>
+            <p className="text-muted-foreground truncate text-xs">
+              {application.candidate.currentTitle ?? "—"}
+            </p>
+          </div>
         </div>
         <div className="flex items-center">
           <DropdownMenu>
@@ -140,7 +164,20 @@ function StageColumn({
       )}
     >
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold">{STAGE_LABELS[stage]}</h3>
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+          <span
+            className={cn(
+              "size-2 rounded-full",
+              stage === "placed"
+                ? "bg-success"
+                : stage === "rejected"
+                  ? "bg-muted-foreground/40"
+                  : "bg-primary",
+              stage !== "placed" && stage !== "rejected" && STAGE_OPACITY[stage],
+            )}
+          />
+          {STAGE_LABELS[stage]}
+        </h3>
         <Badge variant="secondary">{applications.length}</Badge>
       </div>
       <div className="flex min-h-24 flex-col gap-2">

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike } from "drizzle-orm";
 import { Globe, Pencil } from "lucide-react";
 import Link from "next/link";
 
@@ -18,6 +18,8 @@ import { clientCompanies, jobs } from "@/db/schema";
 import { formatSalaryRange } from "@/lib/ats";
 import { requireTenant } from "@/lib/session";
 
+import { QuickSearch } from "@/components/quick-search";
+
 import { JobFormSheet } from "./job-form";
 import { MatchDialog } from "./match-dialog";
 
@@ -30,12 +32,20 @@ const statusVariant = {
   filled: "outline",
 } as const;
 
-export default async function JobsPage() {
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const { organizationId } = await requireTenant();
+  const { q } = await searchParams;
 
   const [rows, clients] = await Promise.all([
     db.query.jobs.findMany({
-      where: eq(jobs.organizationId, organizationId),
+      where: and(
+        eq(jobs.organizationId, organizationId),
+        q ? ilike(jobs.title, `%${q}%`) : undefined,
+      ),
       orderBy: [desc(jobs.updatedAt)],
       with: {
         clientCompany: { columns: { name: true } },
@@ -58,7 +68,10 @@ export default async function JobsPage() {
             {rows.filter((row) => row.status === "open").length} open of {rows.length} total
           </p>
         </div>
-        <JobFormSheet clients={clients} />
+        <div className="flex items-center gap-2">
+          <QuickSearch placeholder="Search jobs…" />
+          <JobFormSheet clients={clients} />
+        </div>
       </div>
 
       <Card>
