@@ -202,10 +202,24 @@ export function KpiCard({ label, value, icon, tone, trend, chart, hint, href }: 
       <Card className="card-lift animate-fade-up relative h-full gap-0 overflow-hidden py-5">
         <div className="gradient-primary absolute inset-x-0 top-0 h-0.5 opacity-60" />
         <CardContent className="flex h-full flex-col gap-3 px-5">
-          <div className="flex items-center justify-between">
-            <div className={cn("flex size-9 items-center justify-center rounded-xl", tones[tone])}>
-              <Icon className="size-4.5" />
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
+              {label}
+            </p>
+            <div
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                tones[tone],
+              )}
+            >
+              <Icon className="size-4" />
             </div>
+          </div>
+
+          <div className="flex items-baseline gap-2.5">
+            <p className="font-mono text-4xl font-semibold tracking-tight tabular-nums">
+              {displayed}
+            </p>
             {delta !== null ? (
               <span
                 className={cn(
@@ -226,13 +240,6 @@ export function KpiCard({ label, value, icon, tone, trend, chart, hint, href }: 
                 New
               </span>
             ) : null}
-          </div>
-
-          <div>
-            <p className="font-mono text-3xl font-semibold tracking-tight tabular-nums">
-              {displayed}
-            </p>
-            <p className="text-muted-foreground mt-0.5 text-sm">{label}</p>
           </div>
 
           {chart ? (

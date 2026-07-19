@@ -85,6 +85,10 @@ export async function getDashboardData(organizationId: string) {
     weeklyCandidateRows,
     sourceRows,
     monthlyPlacementRows,
+    weeklyPlacementRows,
+    weeklyOfferMoveRows,
+    stats12wk,
+    topJobRows,
     jobsNeedingCandidates,
     staleApplications,
     offersOpen,
@@ -194,6 +198,85 @@ export async function getDashboardData(organizationId: string) {
       )
       .groupBy(sql`date_trunc('month', ${placements.createdAt})`)
       .orderBy(sql`date_trunc('month', ${placements.createdAt})`),
+    db
+      .select({
+        week: sql<string>`to_char(date_trunc('week', ${placements.createdAt}), 'YYYY-MM-DD')`,
+        value: count(),
+      })
+      .from(placements)
+      .where(
+        and(
+          eq(placements.organizationId, organizationId),
+          gte(placements.createdAt, twelveWeeksAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('week', ${placements.createdAt})`),
+    db
+      .select({
+        week: sql<string>`to_char(date_trunc('week', ${auditLogs.createdAt}), 'YYYY-MM-DD')`,
+        value: count(),
+      })
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.organizationId, organizationId),
+          eq(auditLogs.action, "pipeline.moved"),
+          sql`${auditLogs.metadata}->>'stage' = 'offer'`,
+          gte(auditLogs.createdAt, twelveWeeksAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('week', ${auditLogs.createdAt})`),
+    Promise.all([
+      db
+        .select({ value: count() })
+        .from(jobs)
+        .where(and(eq(jobs.organizationId, organizationId), gte(jobs.createdAt, twelveWeeksAgo))),
+      db
+        .select({ value: count() })
+        .from(applications)
+        .where(
+          and(
+            eq(applications.organizationId, organizationId),
+            gte(applications.createdAt, twelveWeeksAgo),
+          ),
+        ),
+      db
+        .select({ value: count() })
+        .from(auditLogs)
+        .where(
+          and(
+            eq(auditLogs.organizationId, organizationId),
+            eq(auditLogs.action, "pipeline.moved"),
+            sql`${auditLogs.metadata}->>'stage' in ('interview_1','interview_2','technical')`,
+            gte(auditLogs.createdAt, twelveWeeksAgo),
+          ),
+        ),
+      db
+        .select({ value: count() })
+        .from(auditLogs)
+        .where(
+          and(
+            eq(auditLogs.organizationId, organizationId),
+            eq(auditLogs.action, "pipeline.moved"),
+            sql`${auditLogs.metadata}->>'stage' = 'offer'`,
+            gte(auditLogs.createdAt, twelveWeeksAgo),
+          ),
+        ),
+      db
+        .select({ value: count() })
+        .from(placements)
+        .where(
+          and(
+            eq(placements.organizationId, organizationId),
+            gte(placements.createdAt, twelveWeeksAgo),
+          ),
+        ),
+    ]),
+    db.query.jobs.findMany({
+      where: and(eq(jobs.organizationId, organizationId), inArray(jobs.status, ["open", "filled"])),
+      columns: { id: true, title: true, status: true },
+      with: { applications: { columns: { id: true, stage: true } } },
+    }),
     // Insight sources -----------------------------------------------------
     db.query.jobs.findMany({
       where: and(eq(jobs.organizationId, organizationId), eq(jobs.status, "open")),
@@ -319,14 +402,18 @@ export async function getDashboardData(organizationId: string) {
     });
   }
 
-  const candidateWeekMap = new Map(weeklyCandidateRows.map((row) => [row.week, row.value]));
-  const candidateSeries: number[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const week = new Date(Date.now() - i * 7 * 24 * 3600 * 1000);
-    const day = week.getDay();
-    week.setDate(week.getDate() - ((day + 6) % 7));
-    candidateSeries.push(candidateWeekMap.get(week.toISOString().slice(0, 10)) ?? 0);
-  }
+  const fillWeeks = (rows: { week: string; value: number }[]): number[] => {
+    const map = new Map(rows.map((row) => [row.week, row.value]));
+    const series: number[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const week = new Date(Date.now() - i * 7 * 24 * 3600 * 1000);
+      const day = week.getDay();
+      week.setDate(week.getDate() - ((day + 6) % 7));
+      series.push(map.get(week.toISOString().slice(0, 10)) ?? 0);
+    }
+    return series;
+  };
+  const candidateSeries = fillWeeks(weeklyCandidateRows);
 
   const interviewsBreakdown = [
     { label: "1st interview", value: stageCount.get("interview_1") ?? 0 },
@@ -357,11 +444,35 @@ export async function getDashboardData(organizationId: string) {
     };
   });
 
+  const [jobs12wk, applications12wk, interviews12wk, offers12wk, placements12wk] = stats12wk;
+  const topJobs = topJobRows
+    .map((job) => ({
+      id: job.id,
+      title: job.title,
+      status: job.status,
+      applications: job.applications.length,
+    }))
+    .sort((a, b) => b.applications - a.applications)
+    .slice(0, 5);
+
   return {
     sources,
     monthlyPlacements,
     weeklyCandidates: candidateSeries,
     interviewsBreakdown,
+    activitySeries: {
+      applications: series,
+      offers: fillWeeks(weeklyOfferMoveRows),
+      placements: fillWeeks(weeklyPlacementRows),
+    },
+    activityStats: {
+      newJobs: jobs12wk[0]?.value ?? 0,
+      applications: applications12wk[0]?.value ?? 0,
+      interviews: interviews12wk[0]?.value ?? 0,
+      offers: offers12wk[0]?.value ?? 0,
+      placements: placements12wk[0]?.value ?? 0,
+    },
+    topJobs,
     kpis: {
       openJobs,
       activeCandidates,

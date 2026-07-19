@@ -34,9 +34,10 @@ type AppSidebarProps = {
   user: { name: string; email: string };
   pipelineCount?: number;
   isPlatformAdmin?: boolean;
+  workspace?: { planName: string; credits: number; monthlyCredits: number };
 };
 
-export function AppSidebar({ tenantName, user, pipelineCount, isPlatformAdmin }: AppSidebarProps) {
+export function AppSidebar({ tenantName, user, pipelineCount, isPlatformAdmin, workspace }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -109,6 +110,32 @@ export function AppSidebar({ tenantName, user, pipelineCount, isPlatformAdmin }:
       </SidebarContent>
 
       <SidebarFooter>
+        {workspace ? (
+          <div className="bg-sidebar-accent/60 mx-1 mb-1 rounded-xl border p-3 group-data-[collapsible=icon]:hidden">
+            <div className="flex items-center justify-between">
+              <p className="truncate text-xs font-semibold">{tenantName}</p>
+              <span className="text-primary bg-primary/10 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+                {workspace.planName}
+              </span>
+            </div>
+            <div className="mt-2 space-y-1">
+              <div className="text-muted-foreground flex items-center justify-between text-[11px]">
+                <span>AI credits</span>
+                <span className="font-mono">
+                  {workspace.credits} / {workspace.monthlyCredits}
+                </span>
+              </div>
+              <div className="bg-border h-1.5 overflow-hidden rounded-full">
+                <div
+                  className="gradient-primary h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min((workspace.credits / Math.max(workspace.monthlyCredits, 1)) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

@@ -1,4 +1,6 @@
 import { ArrowRight, CircleAlert, Eye, Sparkles } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +15,10 @@ export function AttentionPanel({ insights }: { insights: Insight[] }) {
   return (
     <Card className="animate-fade-up h-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Needs your attention</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          Needs your attention
+          {insights.length > 0 ? <Badge variant="secondary">{insights.length}</Badge> : null}
+        </CardTitle>
         <span className="gradient-ai flex size-6 items-center justify-center rounded-lg text-white">
           <Sparkles className="size-3.5" />
         </span>
@@ -63,6 +68,12 @@ export function AttentionPanel({ insights }: { insights: Insight[] }) {
             ))}
           </ul>
         )}
+        <Link
+          href="/pipeline"
+          className="text-primary mt-3 flex items-center gap-1 text-xs font-medium hover:underline"
+        >
+          View pipeline <ArrowRight className="size-3" />
+        </Link>
       </CardContent>
     </Card>
   );
