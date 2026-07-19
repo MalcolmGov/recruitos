@@ -61,8 +61,14 @@ const STAGE_OPACITY: Partial<Record<HiringStage, string>> = {
 export type BoardApplication = {
   id: string;
   stage: HiringStage;
+  updatedAt: Date;
   candidate: { id: string; name: string; currentTitle: string | null };
 };
+
+/** Days a card has sat in its stage — the terminal's stall signal. */
+function daysInStage(updatedAt: Date): number {
+  return Math.floor((Date.now() - new Date(updatedAt).getTime()) / 86_400_000);
+}
 
 function ApplicationCard({
   application,
@@ -102,8 +108,24 @@ function ApplicationCard({
           </Avatar>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{application.candidate.name}</p>
-            <p className="text-muted-foreground truncate text-xs">
-              {application.candidate.currentTitle ?? "—"}
+            <p className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
+              <span className="truncate">{application.candidate.currentTitle ?? "—"}</span>
+              {application.stage !== "placed" &&
+              application.stage !== "rejected" &&
+              daysInStage(application.updatedAt) >= 7 ? (
+                <span
+                  suppressHydrationWarning
+                  className={cn(
+                    "shrink-0 rounded-full px-1.5 py-px font-mono text-[10px] font-semibold",
+                    daysInStage(application.updatedAt) >= 14
+                      ? "bg-destructive/12 text-destructive"
+                      : "bg-warning/15 text-[oklch(0.6_0.14_70)] dark:text-warning",
+                  )}
+                  title={`${daysInStage(application.updatedAt)} days in stage`}
+                >
+                  {daysInStage(application.updatedAt)}d
+                </span>
+              ) : null}
             </p>
           </div>
         </div>

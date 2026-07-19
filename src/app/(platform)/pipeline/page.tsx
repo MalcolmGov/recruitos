@@ -48,7 +48,7 @@ export default async function PipelinePage({
       eq(applications.organizationId, organizationId),
       eq(applications.jobId, selectedJob.id),
     ),
-    columns: { id: true, stage: true },
+    columns: { id: true, stage: true, updatedAt: true },
     with: { candidate: { columns: { id: true, name: true, currentTitle: true } } },
   });
 

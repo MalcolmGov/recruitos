@@ -17,6 +17,8 @@ import { db } from "@/db";
 import { clientCompanies, jobs } from "@/db/schema";
 import { formatSalaryRange } from "@/lib/ats";
 import { requireTenant } from "@/lib/session";
+import { cn } from "@/lib/utils";
+import { scoreJobRisk } from "@/server/intelligence";
 
 import { QuickSearch } from "@/components/quick-search";
 
@@ -49,7 +51,7 @@ export default async function JobsPage({
       orderBy: [desc(jobs.updatedAt)],
       with: {
         clientCompany: { columns: { name: true } },
-        applications: { columns: { id: true, stage: true } },
+        applications: { columns: { id: true, stage: true, updatedAt: true } },
       },
     }),
     db.query.clientCompanies.findMany({
@@ -89,6 +91,7 @@ export default async function JobsPage({
                   <TableHead>Type</TableHead>
                   <TableHead>Salary / rate</TableHead>
                   <TableHead>Pipeline</TableHead>
+                  <TableHead>Risk</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
@@ -112,8 +115,35 @@ export default async function JobsPage({
                     </TableCell>
                     <TableCell>
                       <Link href={`/pipeline?job=${row.id}`} className="text-primary hover:underline">
-                        {row.applications.filter((a) => a.stage !== "rejected").length} active
+                        {
+                          row.applications.filter(
+                            (a) => a.stage !== "rejected" && a.stage !== "placed",
+                          ).length
+                        }{" "}
+                        active
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const risk = scoreJobRisk(row);
+                        if (risk.score === 0)
+                          return <span className="text-muted-foreground text-xs">—</span>;
+                        return (
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-2 py-px font-mono text-xs font-semibold",
+                              risk.level === "high"
+                                ? "bg-destructive/12 text-destructive"
+                                : risk.level === "medium"
+                                  ? "bg-warning/15 text-[oklch(0.6_0.14_70)] dark:text-warning"
+                                  : "bg-success/12 text-success",
+                            )}
+                            title={risk.reasons.join(" · ")}
+                          >
+                            {risk.score}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[row.status]}>{row.status}</Badge>

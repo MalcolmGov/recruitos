@@ -1,15 +1,21 @@
 import Link from "next/link";
 
-import { AttentionPanel } from "@/components/dashboard/attention-panel";
 import { MonthlyPlacementsBars, SourceDonut } from "@/components/dashboard/charts";
 import { CopilotPanel } from "@/components/dashboard/copilot-panel";
 import { PipelineFunnel } from "@/components/dashboard/funnel";
 import { HiringActivity } from "@/components/dashboard/hiring-activity";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ActivityTimeline, TopJobs } from "@/components/dashboard/side-cards";
+import {
+  ActionQueue,
+  ForecastCard,
+  RiskPanel,
+  TickerStrip,
+} from "@/components/dashboard/terminal";
 import { Badge } from "@/components/ui/badge";
 import { requireTenant } from "@/lib/session";
 import { getDashboardData } from "@/server/dashboard";
+import { getIntelligence } from "@/server/intelligence";
 
 export const metadata = { title: "Dashboard" };
 
@@ -33,7 +39,10 @@ const actionLabels: Record<string, string> = {
 
 export default async function DashboardPage() {
   const { session, organizationId } = await requireTenant();
-  const data = await getDashboardData(organizationId);
+  const [data, intel] = await Promise.all([
+    getDashboardData(organizationId),
+    getIntelligence(organizationId),
+  ]);
 
   const greeting = (() => {
     const hour = new Date().getHours();
@@ -90,6 +99,18 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      <TickerStrip items={intel.ticker} />
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <ActionQueue actions={intel.actions} />
+        </div>
+        <CopilotPanel
+          firstName={session.user.name.split(" ")[0]}
+          briefing={intel.briefing}
+        />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Placements this month"
@@ -138,11 +159,11 @@ export default async function DashboardPage() {
         <div className="xl:col-span-2">
           <HiringActivity series={data.activitySeries} stats={data.activityStats} />
         </div>
-        <CopilotPanel firstName={session.user.name.split(" ")[0]} />
+        <ForecastCard forecast={intel.forecast} velocity={intel.velocity} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <AttentionPanel insights={data.insights} />
+        <RiskPanel risks={intel.jobRisks} />
         <ActivityTimeline entries={activityEntries} />
         <TopJobs jobs={data.topJobs} />
       </div>

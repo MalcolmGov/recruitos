@@ -35,7 +35,13 @@ const SUGGESTIONS: { icon: LucideIcon; title: string; prompt: string }[] = [
  * The copilot as a first-class dashboard panel — same tenant-scoped brain as
  * the topbar sheet, embedded where the day starts.
  */
-export function CopilotPanel({ firstName }: { firstName: string }) {
+export function CopilotPanel({
+  firstName,
+  briefing = [],
+}: {
+  firstName: string;
+  briefing?: string[];
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -77,9 +83,22 @@ export function CopilotPanel({ firstName }: { firstName: string }) {
             <p className="text-sm">
               Good day, {firstName} 👋
               <span className="text-muted-foreground block text-xs">
-                How can I help you today?
+                Here&apos;s your live briefing:
               </span>
             </p>
+            {briefing.length > 0 ? (
+              <ul className="space-y-1.5">
+                {briefing.map((line) => (
+                  <li
+                    key={line}
+                    className="text-muted-foreground flex items-start gap-2 text-xs leading-relaxed"
+                  >
+                    <span className="bg-primary mt-1.5 size-1 shrink-0 rounded-full" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="space-y-2">
               {SUGGESTIONS.map((suggestion) => (
                 <button
