@@ -1,10 +1,9 @@
-import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ServiceCard } from "@/components/marketing/cards";
 import { CtaBanner, PageHero, Section } from "@/components/marketing/section";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { services } from "@/content/site";
 
 export const metadata: Metadata = {
@@ -28,22 +27,12 @@ export default function ServicesPage() {
       <Section>
         <div className="grid gap-6 md:grid-cols-2">
           {services.map((service) => (
-            <Card key={service.slug} id={service.slug} className="scroll-mt-24">
-              <CardHeader>
-                <CardTitle className="text-xl">{service.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">{service.description}</p>
-                <ul className="space-y-2">
-                  {service.points.map((point) => (
-                    <li key={point} className="flex items-start gap-2 text-sm">
-                      <ArrowRight className="text-primary mt-0.5 size-3.5 shrink-0" />
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            <ServiceCard
+              key={service.slug}
+              id={service.slug}
+              service={service}
+              className="scroll-mt-24"
+            />
           ))}
         </div>
       </Section>

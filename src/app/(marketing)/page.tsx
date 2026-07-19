@@ -9,7 +9,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { ArticleCard, JobCard, TestimonialCard } from "@/components/marketing/cards";
+import {
+  ArticleCard,
+  FeatureTile,
+  IndustryCard,
+  JobCard,
+  ProcessStepCard,
+  ServiceCard,
+  TestimonialCard,
+} from "@/components/marketing/cards";
 import { CtaBanner, Section, SectionHeader } from "@/components/marketing/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,22 +128,7 @@ export default async function HomePage() {
         />
         <div className="grid gap-6 md:grid-cols-2">
           {services.map((service) => (
-            <Card key={service.slug}>
-              <CardHeader>
-                <CardTitle>{service.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground text-sm">{service.description}</p>
-                <ul className="space-y-2">
-                  {service.points.map((point) => (
-                    <li key={point} className="flex items-start gap-2 text-sm">
-                      <ArrowRight className="text-primary mt-0.5 size-3.5 shrink-0" />
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            <ServiceCard key={service.slug} service={service} />
           ))}
         </div>
         <div className="mt-8 text-center">
@@ -154,14 +147,7 @@ export default async function HomePage() {
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {industries.map((industry) => (
-            <Card key={industry.title}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{industry.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{industry.description}</p>
-              </CardContent>
-            </Card>
+            <IndustryCard key={industry.title} industry={industry} />
           ))}
         </div>
       </Section>
@@ -175,11 +161,7 @@ export default async function HomePage() {
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {process.map((item) => (
-            <div key={item.step} className="rounded-2xl border p-6">
-              <p className="text-primary font-mono text-sm font-semibold">{item.step}</p>
-              <h3 className="mt-2 font-semibold">{item.title}</h3>
-              <p className="text-muted-foreground mt-2 text-sm">{item.description}</p>
-            </div>
+            <ProcessStepCard key={item.step} item={item} />
           ))}
         </div>
       </Section>
@@ -193,11 +175,7 @@ export default async function HomePage() {
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {aiFeatures.map((feature) => (
-            <div key={feature.title} className="rounded-2xl border bg-card p-6">
-              <feature.icon className="text-primary size-6" />
-              <h3 className="mt-4 font-semibold">{feature.title}</h3>
-              <p className="text-muted-foreground mt-2 text-sm">{feature.description}</p>
-            </div>
+            <FeatureTile key={feature.title} feature={feature} />
           ))}
         </div>
       </Section>
