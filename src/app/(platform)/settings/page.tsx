@@ -2,10 +2,9 @@ import { eq } from "drizzle-orm";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db } from "@/db";
-import { invitation, member, organization, tenantIntegrations, tenantSettings } from "@/db/schema";
+import { invitation, member, organization, tenantSettings } from "@/db/schema";
 import { requireTenant } from "@/lib/session";
 
-import { IntegrationsPanel } from "./integrations-panel";
 import { ProfileForm } from "./profile-form";
 import { TeamPanel } from "./team-panel";
 
@@ -14,7 +13,7 @@ export const metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const { organizationId } = await requireTenant();
 
-  const [org, settings, members, invitations, integrations] = await Promise.all([
+  const [org, settings, members, invitations] = await Promise.all([
     db.query.organization.findFirst({ where: eq(organization.id, organizationId) }),
     db.query.tenantSettings.findFirst({
       where: eq(tenantSettings.organizationId, organizationId),
@@ -25,9 +24,6 @@ export default async function SettingsPage() {
     }),
     db.query.invitation.findMany({
       where: eq(invitation.organizationId, organizationId),
-    }),
-    db.query.tenantIntegrations.findMany({
-      where: eq(tenantIntegrations.organizationId, organizationId),
     }),
   ]);
 
@@ -44,7 +40,6 @@ export default async function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -72,15 +67,6 @@ export default async function SettingsPage() {
           />
         </TabsContent>
 
-        <TabsContent value="integrations" className="mt-4">
-          <IntegrationsPanel
-            integrations={integrations.map((row) => ({
-              type: row.type,
-              enabled: row.enabled,
-              config: row.config,
-            }))}
-          />
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -76,7 +76,49 @@ const REQUIRED_CONFIG: Record<(typeof INTEGRATION_TYPES)[number], string[]> = {
   resend: ["apiKey"],
   slack_webhook: ["webhookUrl"],
   outbound_webhook: ["url", "secret"],
+  job_feed: ["token"],
 };
+
+/**
+ * Job-feed connect: the token is server-generated (it gates public access to
+ * the tenant's published jobs), so it never round-trips through a form.
+ */
+export async function connectJobFeed(): Promise<ActionResult> {
+  const { session, organizationId } = await requireTenant();
+  await requirePermission({ settings: ["update"] });
+
+  const existing = await db.query.tenantIntegrations.findFirst({
+    where: and(
+      eq(tenantIntegrations.organizationId, organizationId),
+      eq(tenantIntegrations.type, "job_feed"),
+    ),
+  });
+  const token = existing?.config.token ?? randomUUID().replace(/-/g, "");
+
+  await db
+    .insert(tenantIntegrations)
+    .values({
+      id: randomUUID(),
+      organizationId,
+      type: "job_feed",
+      config: { token },
+      enabled: true,
+    })
+    .onConflictDoUpdate({
+      target: [tenantIntegrations.organizationId, tenantIntegrations.type],
+      set: { config: { token }, enabled: true },
+    });
+
+  await recordAudit({
+    organizationId,
+    actorId: session.user.id,
+    action: "integration.saved",
+    entityType: "integration",
+    metadata: { type: "job_feed", enabled: true },
+  });
+  revalidatePath("/integrations");
+  return { ok: true };
+}
 
 export async function saveIntegration(input: unknown): Promise<ActionResult> {
   const { session, organizationId } = await requireTenant();
@@ -122,6 +164,7 @@ export async function saveIntegration(input: unknown): Promise<ActionResult> {
     metadata: { type: parsed.data.type, enabled: parsed.data.enabled },
   });
   revalidatePath("/settings");
+  revalidatePath("/integrations");
   return { ok: true };
 }
 

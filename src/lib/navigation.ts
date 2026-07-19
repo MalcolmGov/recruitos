@@ -3,6 +3,7 @@ import {
   Briefcase,
   Building2,
   CreditCard,
+  Plug,
   Handshake,
   KanbanSquare,
   LayoutDashboard,
@@ -54,6 +55,7 @@ export const navigation: NavGroup[] = [
   {
     label: "System",
     items: [
+      { title: "Integrations", href: "/integrations", icon: Plug, resource: "settings" },
       { title: "Billing", href: "/billing", icon: CreditCard, resource: "billing" },
       { title: "Settings", href: "/settings", icon: Settings, resource: "settings" },
     ],

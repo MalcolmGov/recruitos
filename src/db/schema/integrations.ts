@@ -10,12 +10,18 @@ import { organization } from "./auth";
  *  - resend:           { apiKey, fromEmail }
  *  - slack_webhook:    { webhookUrl }
  *  - outbound_webhook: { url, secret }   // HMAC-SHA256 signing secret
+ *  - job_feed:         { token }         // public feed access token
  *
  * NOTE: config is stored as plaintext jsonb for local development. Before
  * production deployment these values must be encrypted at rest (KMS/libsodium)
  * — tracked for the deployment phase.
  */
-export const INTEGRATION_TYPES = ["resend", "slack_webhook", "outbound_webhook"] as const;
+export const INTEGRATION_TYPES = [
+  "resend",
+  "slack_webhook",
+  "outbound_webhook",
+  "job_feed",
+] as const;
 export type IntegrationType = (typeof INTEGRATION_TYPES)[number];
 
 export const tenantIntegrations = pgTable(
