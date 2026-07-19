@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { recordAudit } from "@/lib/audit";
 import { requirePermission, requireTenant } from "@/lib/session";
+import { chargeAiCredits, refundAiCredits } from "@/server/billing";
 
 import { AI_MODEL, AI_NOT_CONFIGURED_MESSAGE, anthropic, isAiConfigured, logAiUsage } from "./client";
 
@@ -38,11 +39,18 @@ export async function parseCv(formData: FormData): Promise<CvParseResult> {
   const { session, organizationId } = await requireTenant();
   await requirePermission({ candidate: ["create"] });
 
-  if (!isAiConfigured()) return { ok: false, error: AI_NOT_CONFIGURED_MESSAGE };
-
   const file = formData.get("cv");
   if (!(file instanceof File)) return { ok: false, error: "No file received." };
   if (file.size > MAX_CV_BYTES) return { ok: false, error: "CV must be under 10 MB." };
+
+  const charge = await chargeAiCredits(organizationId, "cv_parse");
+  if (!charge.ok) return { ok: false, error: charge.error };
+
+  if (!isAiConfigured()) {
+    await refundAiCredits(organizationId, "cv_parse");
+    return { ok: false, error: AI_NOT_CONFIGURED_MESSAGE };
+  }
+
 
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
   const instruction =
@@ -88,6 +96,7 @@ export async function parseCv(formData: FormData): Promise<CvParseResult> {
     }
     return { ok: true, parsed: response.parsed_output };
   } catch (error) {
+    await refundAiCredits(organizationId, "cv_parse");
     console.error("[ai] cv parse failed", error);
     return { ok: false, error: "CV parsing failed — please try again." };
   }

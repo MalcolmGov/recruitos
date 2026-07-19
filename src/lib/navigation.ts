@@ -2,6 +2,7 @@ import {
   BarChart3,
   Briefcase,
   Building2,
+  CreditCard,
   Handshake,
   KanbanSquare,
   LayoutDashboard,
@@ -52,6 +53,9 @@ export const navigation: NavGroup[] = [
   },
   {
     label: "System",
-    items: [{ title: "Settings", href: "/settings", icon: Settings, resource: "settings" }],
+    items: [
+      { title: "Billing", href: "/billing", icon: CreditCard, resource: "billing" },
+      { title: "Settings", href: "/settings", icon: Settings, resource: "settings" },
+    ],
   },
 ];

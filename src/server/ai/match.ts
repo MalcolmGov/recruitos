@@ -10,6 +10,7 @@ import { db } from "@/db";
 import { aiMatches, candidates, jobs, type MatchBreakdown } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { requirePermission, requireTenant } from "@/lib/session";
+import { chargeAiCredits, refundAiCredits } from "@/server/billing";
 
 import { AI_MODEL, AI_NOT_CONFIGURED_MESSAGE, anthropic, isAiConfigured, logAiUsage } from "./client";
 
@@ -52,8 +53,6 @@ export async function matchCandidatesToJob(jobId: string): Promise<MatchResult> 
   const { session, organizationId } = await requireTenant();
   await requirePermission({ candidate: ["read"], job: ["read"] });
 
-  if (!isAiConfigured()) return { ok: false, error: AI_NOT_CONFIGURED_MESSAGE };
-
   const job = await db.query.jobs.findFirst({
     where: and(eq(jobs.id, jobId), eq(jobs.organizationId, organizationId)),
     with: { applications: { columns: { candidateId: true } } },
@@ -72,6 +71,15 @@ export async function matchCandidatesToJob(jobId: string): Promise<MatchResult> 
   if (pool.length === 0) {
     return { ok: false, error: "No available candidates to match — everyone active is already in this pipeline." };
   }
+
+  const charge = await chargeAiCredits(organizationId, "match");
+  if (!charge.ok) return { ok: false, error: charge.error };
+
+  if (!isAiConfigured()) {
+    await refundAiCredits(organizationId, "match");
+    return { ok: false, error: AI_NOT_CONFIGURED_MESSAGE };
+  }
+
 
   const jobProfile = {
     title: job.title,
@@ -190,6 +198,7 @@ ${JSON.stringify(candidateProfiles)}
 
     return { ok: true, matches: rows };
   } catch (error) {
+    await refundAiCredits(organizationId, "match");
     console.error("[ai] match failed", error);
     return { ok: false, error: "Matching failed — please try again." };
   }

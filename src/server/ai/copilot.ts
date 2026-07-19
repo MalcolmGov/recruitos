@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { applications, candidates, jobs, placements } from "@/db/schema";
 import { STAGE_LABELS } from "@/lib/ats";
 import { requireTenant } from "@/lib/session";
+import { chargeAiCredits, refundAiCredits } from "@/server/billing";
 
 import { AI_MODEL, AI_NOT_CONFIGURED_MESSAGE, anthropic, isAiConfigured, logAiUsage } from "./client";
 
@@ -38,10 +39,17 @@ Be concise and practical: answer first, short supporting detail after. Use plain
  */
 export async function runCopilot(input: unknown): Promise<CopilotResult> {
   const { organizationId } = await requireTenant();
-  if (!isAiConfigured()) return { ok: false, error: AI_NOT_CONFIGURED_MESSAGE };
-
   const parsed = chatSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid conversation." };
+
+  const charge = await chargeAiCredits(organizationId, "copilot");
+  if (!charge.ok) return { ok: false, error: charge.error };
+
+  if (!isAiConfigured()) {
+    await refundAiCredits(organizationId, "copilot");
+    return { ok: false, error: AI_NOT_CONFIGURED_MESSAGE };
+  }
+
 
   const searchCandidates = betaZodTool({
     name: "search_candidates",
@@ -169,6 +177,7 @@ export async function runCopilot(input: unknown): Promise<CopilotResult> {
       .trim();
     return { ok: true, reply: reply || "I couldn't produce an answer — try rephrasing." };
   } catch (error) {
+    await refundAiCredits(organizationId, "copilot");
     console.error("[ai] copilot failed", error);
     return { ok: false, error: "The copilot hit an error — please try again." };
   }
