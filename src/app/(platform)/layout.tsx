@@ -41,7 +41,7 @@ export default async function PlatformLayout({
       />
       <SidebarInset>
         <AppTopbar />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 lg:px-10">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

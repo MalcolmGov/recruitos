@@ -25,7 +25,7 @@ export default async function ReportsPage() {
   await requireTenant();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-8">
       <div className="animate-fade-up flex flex-col items-center pt-8 text-center">
         <span className="gradient-primary flex size-14 items-center justify-center rounded-2xl text-white shadow-glow">
           <BarChart3 className="size-7" />
@@ -45,7 +45,7 @@ export default async function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {upcoming.map((report) => (
           <Card key={report.title} className="animate-fade-up">
             <CardContent className="flex items-start gap-3 pt-5">

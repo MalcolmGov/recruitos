@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-svh flex-col">
       <header className="bg-background/80 sticky top-0 z-40 border-b backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-14 max-w-(--breakpoint-2xl) items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-3">
             <span className="gradient-ai flex size-8 items-center justify-center rounded-lg text-white">
               <ShieldCheck className="size-4" />
@@ -35,11 +35,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <ArrowLeft className="size-4" /> Back to workspace
           </Link>
         </div>
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-(--breakpoint-2xl) px-6 lg:px-10">
           <AdminNav />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-(--breakpoint-2xl) flex-1 px-6 py-8 lg:px-10">{children}</main>
     </div>
   );
 }
