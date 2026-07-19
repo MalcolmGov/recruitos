@@ -98,6 +98,63 @@ function MiniBars({ points }: { points: { label: string; value: number }[] }) {
   );
 }
 
+function MiniDonut({ points }: { points: { label: string; value: number }[] }) {
+  const total = points.reduce((sum, point) => sum + point.value, 0);
+  const size = 44;
+  const radius = 17;
+  const strokeWidth = 7;
+  const circumference = 2 * Math.PI * radius;
+  const fractions = points.map((point) => (total > 0 ? point.value / total : 0));
+  // Ordinal stages → sequential single-hue ring segments.
+  const opacities = [0.4, 0.7, 1];
+
+  return (
+    <div className="flex h-11 items-center gap-3" role="img" aria-label="Breakdown">
+      <div className="relative shrink-0">
+        <svg viewBox={`0 0 ${size} ${size}`} className="size-11 -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            strokeWidth={strokeWidth}
+            className="stroke-muted"
+          />
+          {fractions.map((fraction, index) => {
+            const before = fractions.slice(0, index).reduce((sum, value) => sum + value, 0);
+            return (
+              <circle
+                key={points[index].label}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${Math.max(fraction * circumference - 1.5, 0)} ${circumference}`}
+                strokeDashoffset={-before * circumference}
+                className="stroke-primary transition-all duration-500"
+                opacity={opacities[index % opacities.length]}
+              />
+            );
+          })}
+        </svg>
+      </div>
+      <ul className="min-w-0 flex-1 space-y-0.5">
+        {points.map((point, index) => (
+          <li key={point.label} className="flex items-center gap-1.5 text-[10px] leading-tight">
+            <span
+              className="bg-primary size-1.5 shrink-0 rounded-full"
+              style={{ opacity: opacities[index % opacities.length] }}
+            />
+            <span className="text-muted-foreground min-w-0 flex-1 truncate">{point.label}</span>
+            <span className="font-mono font-semibold">{point.value}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // ----------------------------------------------------------------- card ---
 
 const ICONS = {
@@ -109,7 +166,8 @@ const ICONS = {
 
 export type KpiChart =
   | { type: "area"; points: number[] }
-  | { type: "bars"; points: { label: string; value: number }[] };
+  | { type: "bars"; points: { label: string; value: number }[] }
+  | { type: "donut"; points: { label: string; value: number }[] };
 
 export type KpiCardProps = {
   label: string;
@@ -181,6 +239,8 @@ export function KpiCard({ label, value, icon, tone, trend, chart, hint, href }: 
             <div className="mt-auto">
               {chart.type === "area" ? (
                 <MiniArea points={chart.points} />
+              ) : chart.type === "donut" ? (
+                <MiniDonut points={chart.points} />
               ) : (
                 <MiniBars points={chart.points} />
               )}

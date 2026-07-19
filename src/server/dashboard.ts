@@ -329,9 +329,9 @@ export async function getDashboardData(organizationId: string) {
   }
 
   const interviewsBreakdown = [
-    { label: "1st", value: stageCount.get("interview_1") ?? 0 },
-    { label: "2nd", value: stageCount.get("interview_2") ?? 0 },
-    { label: "Tech", value: stageCount.get("technical") ?? 0 },
+    { label: "1st interview", value: stageCount.get("interview_1") ?? 0 },
+    { label: "2nd interview", value: stageCount.get("interview_2") ?? 0 },
+    { label: "Technical", value: stageCount.get("technical") ?? 0 },
   ];
 
   // Candidates by source: top 4 + Other (fixed slice order = fixed hue order).

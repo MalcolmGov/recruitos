@@ -105,7 +105,7 @@ export default async function DashboardPage() {
         <KpiCard
           label="Interviews in progress"
           value={data.kpis.interviewsActive}
-          chart={{ type: "bars", points: data.interviewsBreakdown }}
+          chart={{ type: "donut", points: data.interviewsBreakdown }}
           icon="calendar"
           tone="violet"
           href="/pipeline"
