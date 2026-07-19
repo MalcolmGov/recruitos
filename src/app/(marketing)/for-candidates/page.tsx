@@ -5,7 +5,7 @@ import Link from "next/link";
 import { JobCard } from "@/components/marketing/cards";
 import { CtaBanner, PageHero, Section, SectionHeader } from "@/components/marketing/section";
 import { Button } from "@/components/ui/button";
-import { jobs } from "@/content/site";
+import { getPublicJobs } from "@/server/public-jobs";
 
 export const metadata: Metadata = {
   title: "For Candidates",
@@ -22,7 +22,8 @@ const promises = [
   "A consultant who reviews every application personally",
 ];
 
-export default function CandidatesPage() {
+export default async function CandidatesPage() {
+  const liveJobs = await getPublicJobs();
   return (
     <>
       <PageHero
@@ -51,7 +52,7 @@ export default function CandidatesPage() {
       <Section muted className="border-y">
         <SectionHeader eyebrow="Live roles" title="Hiring right now" />
         <div className="grid gap-6 md:grid-cols-2">
-          {jobs.map((job) => (
+          {liveJobs.map((job) => (
             <JobCard key={job.slug} job={job} />
           ))}
         </div>

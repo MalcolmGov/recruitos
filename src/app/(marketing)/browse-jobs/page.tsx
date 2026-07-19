@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { JobCard } from "@/components/marketing/cards";
 import { CtaBanner, PageHero, Section } from "@/components/marketing/section";
-import { jobs } from "@/content/site";
+import { getPublicJobs } from "@/server/public-jobs";
 
 export const metadata: Metadata = {
   title: "Jobs",
@@ -10,11 +10,13 @@ export const metadata: Metadata = {
     "Live UK roles for South African professionals — remote-first, GBP salaries, permanent and contract.",
 };
 
-/**
- * Public job board. Currently content-driven; Phase 3 wires this to live
- * tenant jobs published from the ATS (same card contract).
- */
-export default function BrowseJobsPage() {
+// Live board: always reflect the ATS without a rebuild.
+export const dynamic = "force-dynamic";
+
+/** Public job board, driven by published open jobs in the ATS. */
+export default async function BrowseJobsPage() {
+  const liveJobs = await getPublicJobs();
+
   return (
     <>
       <PageHero
@@ -23,11 +25,18 @@ export default function BrowseJobsPage() {
         description="Every role listed is actively hiring, with a named consultant behind it. Salaries shown are real ranges, not bait."
       />
       <Section>
-        <div className="grid gap-6 md:grid-cols-2">
-          {jobs.map((job) => (
-            <JobCard key={job.slug} job={job} />
-          ))}
-        </div>
+        {liveJobs.length === 0 ? (
+          <p className="text-muted-foreground py-12 text-center">
+            No open roles right now — register your CV and we&apos;ll match you as new roles
+            open.
+          </p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {liveJobs.map((job) => (
+              <JobCard key={job.slug} job={job} />
+            ))}
+          </div>
+        )}
       </Section>
       <CtaBanner
         title="Nothing that fits today?"

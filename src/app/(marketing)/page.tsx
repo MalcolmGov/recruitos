@@ -17,13 +17,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   articles,
   industries,
-  jobs,
   process,
   services,
   stats,
   testimonials,
   trustedBy,
 } from "@/content/site";
+import { getPublicJobs } from "@/server/public-jobs";
 
 const aiFeatures = [
   {
@@ -48,7 +48,8 @@ const aiFeatures = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const liveJobs = await getPublicJobs(4);
   return (
     <>
       {/* Hero */}
@@ -218,7 +219,7 @@ export default function HomePage() {
           description="A selection of roles we're hiring for right now."
         />
         <div className="grid gap-6 md:grid-cols-2">
-          {jobs.slice(0, 4).map((job) => (
+          {liveJobs.map((job) => (
             <JobCard key={job.slug} job={job} />
           ))}
         </div>
