@@ -108,8 +108,11 @@ export type DailyBriefing = {
   expectedPlacements: number;
   valuedCandidates: number;
   assumption: string;
-  opportunities: { label: string; value: string }[];
-  risks: { label: string; href: string }[];
+  /** pipeline value split by stage, funnel order — feeds the hero bar chart */
+  valueByStage: { stage: string; label: string; value: number; count: number }[];
+  offersOut: number;
+  offersValue: number;
+  risks: { label: string; short: string; count: number; href: string }[];
   quickActions: { label: string; href: string }[];
 };
 
@@ -455,6 +458,7 @@ export async function getIntelligence(organizationId: string): Promise<Intellige
   let expectedPlacements = 0;
   let valuedCandidates = 0;
   const activeStageSet = new Set(Object.keys(STAGE_WEIGHT));
+  const stageAgg = new Map<string, { value: number; count: number }>();
   for (const job of openJobs) {
     const mid =
       job.salaryMin && job.salaryMax
@@ -464,13 +468,34 @@ export async function getIntelligence(organizationId: string): Promise<Intellige
     for (const app of job.applications) {
       if (!activeStageSet.has(app.stage)) continue;
       expectedPlacements += STAGE_WEIGHT[app.stage];
+      const agg = stageAgg.get(app.stage) ?? { value: 0, count: 0 };
+      agg.count += 1;
       if (estFee > 0) {
         deskValue += estFee;
         expectedValue += estFee * STAGE_WEIGHT[app.stage];
         valuedCandidates += 1;
+        agg.value += estFee;
       }
+      stageAgg.set(app.stage, agg);
     }
   }
+  const STAGE_LABEL: Record<string, string> = {
+    applied: "Applied",
+    screening: "Screening",
+    interview_1: "Interview 1",
+    interview_2: "Interview 2",
+    technical: "Technical",
+    references: "References",
+    offer: "Offer",
+  };
+  const valueByStage = Object.keys(STAGE_WEIGHT)
+    .map((stage) => ({
+      stage,
+      label: STAGE_LABEL[stage],
+      value: Math.round(stageAgg.get(stage)?.value ?? 0),
+      count: stageAgg.get(stage)?.count ?? 0,
+    }))
+    .filter((entry) => entry.count > 0);
 
   const offersValue = openJobs.reduce((sum, job) => {
     const mid =
@@ -497,25 +522,33 @@ export async function getIntelligence(organizationId: string): Promise<Intellige
   const dailyRisks: DailyBriefing["risks"] = [];
   if (coldOffers.length > 0) {
     dailyRisks.push({
-      label: `${coldOffers.length} offer${coldOffers.length === 1 ? "" : "s"} going cold (5d+ without a decision)`,
+      count: coldOffers.length,
+      short: "offers going cold",
+      label: "5d+ without a decision",
       href: "/pipeline",
     });
   }
   if (withdrawalRisk.length > 0) {
     dailyRisks.push({
-      label: `${withdrawalRisk.length} candidate${withdrawalRisk.length === 1 ? "" : "s"} at withdrawal risk (21d+ without movement)`,
+      count: withdrawalRisk.length,
+      short: "withdrawal risk",
+      label: "21d+ without movement",
       href: "/pipeline",
     });
   }
   if (stalledInterviews.length > 0) {
     dailyRisks.push({
-      label: `${stalledInterviews.length} interview${stalledInterviews.length === 1 ? "" : "s"} stalled 7d+ — schedule or release`,
+      count: stalledInterviews.length,
+      short: "interviews stalled",
+      label: "7d+ — schedule or release",
       href: "/pipeline",
     });
   }
   if (emptyPipelines.length > 0) {
     dailyRisks.push({
-      label: `${emptyPipelines.length} open role${emptyPipelines.length === 1 ? "" : "s"} with an empty pipeline`,
+      count: emptyPipelines.length,
+      short: "empty pipelines",
+      label: "open roles with no candidates",
       href: "/jobs",
     });
   }
@@ -533,16 +566,9 @@ export async function getIntelligence(organizationId: string): Promise<Intellige
     expectedPlacements: Math.round(expectedPlacements * 10) / 10,
     valuedCandidates,
     assumption: `assumes ${Math.round(ASSUMED_FEE_RATE * 100)}% fee on salary midpoint · salaried roles only`,
-    opportunities: [
-      {
-        label: `${offersOut} offer${offersOut === 1 ? "" : "s"} in play`,
-        value: offersValue > 0 ? `worth ~${gbp(Math.round(offersValue))}` : "value unpriced",
-      },
-      {
-        label: "expected placements from current pipeline",
-        value: `${Math.round(expectedPlacements * 10) / 10} (stage-weighted)`,
-      },
-    ],
+    valueByStage,
+    offersOut,
+    offersValue: Math.round(offersValue),
     risks: dailyRisks.slice(0, 4),
     quickActions: quickActions.slice(0, 3),
   };

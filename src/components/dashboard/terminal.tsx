@@ -33,6 +33,9 @@ const gbp = (value: number) =>
 
 // ------------------------------------------------------ daily briefing ---
 
+/** Sequential single-hue ramp for funnel-ordered stage segments. */
+const STAGE_RAMP_OPACITY = [0.25, 0.4, 0.55, 0.7, 0.8, 0.9, 1];
+
 export function DailyBriefingHero({
   daily,
   greeting,
@@ -42,69 +45,106 @@ export function DailyBriefingHero({
   greeting: string;
   firstName: string;
 }) {
+  const totalStageValue = daily.valueByStage.reduce((sum, entry) => sum + entry.value, 0);
+
   return (
     <Card className="animate-fade-up relative overflow-hidden">
       <div className="gradient-ai absolute inset-x-0 top-0 h-0.5" />
-      <CardContent className="grid gap-6 px-6 lg:grid-cols-[1.2fr_1fr_1fr]">
+      <div className="bg-primary/8 pointer-events-none absolute -top-24 -right-24 size-72 rounded-full blur-3xl" />
+      <CardContent className="grid gap-6 px-6 lg:grid-cols-[1.25fr_1fr]">
         <div>
           <p className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] uppercase">
-            <Sparkles className="size-3" /> AI daily briefing
+            <Sparkles className="size-3" /> AI daily briefing · {greeting}, {firstName} 👋
           </p>
-          <p className="mt-2 text-sm">
-            {greeting}, {firstName} 👋
-          </p>
-          <p className="text-muted-foreground mt-3 text-xs">Today your desk is worth</p>
-          <p className="mt-1 font-mono text-[2.75rem] leading-none font-semibold tracking-tight tabular-nums">
-            {gbp(daily.deskValue)}
-          </p>
-          <p className="text-muted-foreground mt-2 text-xs">
-            <span className="text-foreground font-mono font-semibold">
-              {gbp(daily.expectedValue)}
-            </span>{" "}
-            expected (stage-weighted) across {daily.valuedCandidates} candidate
-            {daily.valuedCandidates === 1 ? "" : "s"}
-          </p>
-          <p className="text-muted-foreground/70 mt-1 text-[10px]">{daily.assumption}</p>
-        </div>
+          <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
+            <div>
+              <p className="text-muted-foreground text-xs">Today your desk is worth</p>
+              <p className="mt-1 font-mono text-[2.75rem] leading-none font-semibold tracking-tight tabular-nums">
+                {gbp(daily.deskValue)}
+              </p>
+            </div>
+            <div className="pb-1">
+              <p className="text-muted-foreground text-xs">Expected (stage-weighted)</p>
+              <p className="font-mono text-xl leading-tight font-semibold tabular-nums">
+                {gbp(daily.expectedValue)}
+              </p>
+            </div>
+            <div className="pb-1">
+              <p className="text-muted-foreground text-xs">Expected placements</p>
+              <p className="font-mono text-xl leading-tight font-semibold tabular-nums">
+                {daily.expectedPlacements}
+              </p>
+            </div>
+          </div>
 
-        <div className="lg:border-l lg:pl-6">
-          <p className="text-success flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] uppercase">
-            <TrendingUp className="size-3" /> Today&apos;s opportunities
-          </p>
-          <ul className="mt-3 space-y-2.5">
-            {daily.opportunities.map((opportunity) => (
-              <li key={opportunity.label} className="text-sm">
-                <span className="block font-medium capitalize">{opportunity.label}</span>
-                <span className="text-muted-foreground font-mono text-xs">
-                  {opportunity.value}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="lg:border-l lg:pl-6">
-          <p className="text-destructive flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] uppercase">
-            <TriangleAlert className="size-3" /> Risks
-          </p>
-          {daily.risks.length === 0 ? (
-            <p className="text-muted-foreground mt-3 text-sm">No live risk signals.</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {daily.risks.map((risk) => (
-                <li key={risk.label}>
-                  <Link
-                    href={risk.href}
-                    className="text-muted-foreground hover:text-foreground flex items-start gap-2 text-xs leading-snug transition-colors"
+          {totalStageValue > 0 ? (
+            <div className="mt-5">
+              <div className="flex h-3 gap-0.5 overflow-hidden rounded-full">
+                {daily.valueByStage.map((entry, index) => (
+                  <div
+                    key={entry.stage}
+                    className="bg-primary min-w-1 rounded-[2px] transition-all duration-500"
+                    style={{
+                      width: `${(entry.value / totalStageValue) * 100}%`,
+                      opacity: STAGE_RAMP_OPACITY[index % STAGE_RAMP_OPACITY.length],
+                    }}
+                    title={`${entry.label}: ${gbp(entry.value)} · ${entry.count} candidate${entry.count === 1 ? "" : "s"}`}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {daily.valueByStage.map((entry, index) => (
+                  <span
+                    key={entry.stage}
+                    className="text-muted-foreground flex items-center gap-1.5 text-[11px]"
                   >
-                    <span className="bg-destructive mt-1 size-1.5 shrink-0 rounded-full" />
-                    {risk.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-4 flex flex-wrap gap-2">
+                    <span
+                      className="bg-primary size-2 rounded-[2px]"
+                      style={{ opacity: STAGE_RAMP_OPACITY[index % STAGE_RAMP_OPACITY.length] }}
+                    />
+                    {entry.label}
+                    <span className="text-foreground font-mono font-semibold">{entry.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <p className="text-muted-foreground/70 mt-3 text-[10px]">{daily.assumption}</p>
+        </div>
+
+        <div className="lg:border-l lg:pl-6">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Link
+              href="/pipeline"
+              className="bg-success/8 hover:bg-success/12 rounded-xl px-3.5 py-3 transition-colors"
+            >
+              <p className="text-success flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase">
+                <TrendingUp className="size-3" /> Offers in play
+              </p>
+              <p className="mt-1.5 font-mono text-2xl leading-none font-semibold tabular-nums">
+                {daily.offersOut}
+              </p>
+              <p className="text-muted-foreground mt-1 font-mono text-[11px]">
+                {daily.offersValue > 0 ? `~${gbp(daily.offersValue)}` : "unpriced"}
+              </p>
+            </Link>
+            {daily.risks.slice(0, 3).map((risk) => (
+              <Link
+                key={risk.short}
+                href={risk.href}
+                className="bg-destructive/6 hover:bg-destructive/10 rounded-xl px-3.5 py-3 transition-colors"
+              >
+                <p className="text-destructive flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.1em] uppercase">
+                  <TriangleAlert className="size-3" /> {risk.short}
+                </p>
+                <p className="mt-1.5 font-mono text-2xl leading-none font-semibold tabular-nums">
+                  {risk.count}
+                </p>
+                <p className="text-muted-foreground mt-1 truncate text-[11px]">{risk.label}</p>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
             {daily.quickActions.map((action) => (
               <Button key={action.label} asChild size="sm" variant="outline" className="h-7 text-xs">
                 <Link href={action.href}>{action.label}</Link>
@@ -209,7 +249,25 @@ export function ActionQueue({ actions }: { actions: NextAction[] }) {
                       {action.detail}
                     </span>
                   </span>
-                  <span className="text-primary flex shrink-0 items-center gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="flex w-16 shrink-0 flex-col items-end gap-1">
+                    <span className="text-muted-foreground font-mono text-[11px] font-semibold">
+                      {Math.min(Math.round(action.score), 99)}
+                    </span>
+                    <span className="bg-border h-1 w-full overflow-hidden rounded-full">
+                      <span
+                        className={cn(
+                          "block h-full rounded-full",
+                          action.impact === "critical"
+                            ? "bg-destructive"
+                            : action.impact === "high"
+                              ? "bg-warning"
+                              : "bg-primary",
+                        )}
+                        style={{ width: `${Math.min(action.score, 100)}%` }}
+                      />
+                    </span>
+                  </span>
+                  <span className="text-primary flex w-20 shrink-0 items-center justify-end gap-1 text-xs font-medium opacity-0 transition-opacity group-hover:opacity-100">
                     {action.cta}
                     <ArrowRight className="size-3" />
                   </span>

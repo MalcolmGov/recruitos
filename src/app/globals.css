@@ -57,7 +57,7 @@
  * Tenant white-labeling overrides --primary / --ring / chart hues per tenant.
  */
 :root {
-  --background: oklch(0.982 0.004 255);
+  --background: oklch(0.962 0.012 252);
   --foreground: oklch(0.185 0.02 262);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.185 0.02 262);
@@ -147,6 +147,18 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  html:not(.dark) body {
+    background-image:
+      radial-gradient(52rem 32rem at 88% -12%, oklch(0.88 0.06 285 / 0.5), transparent 60%),
+      radial-gradient(46rem 30rem at -10% 12%, oklch(0.9 0.05 250 / 0.45), transparent 55%),
+      radial-gradient(40rem 26rem at 55% 115%, oklch(0.92 0.04 220 / 0.4), transparent 60%);
+    background-attachment: fixed;
+  }
+  html:not(.dark) [data-slot="card"] {
+    box-shadow:
+      0 1px 2px oklch(0.3 0.05 262 / 0.05),
+      0 12px 32px -16px oklch(0.35 0.08 262 / 0.18);
   }
   .dark body {
     background-image:
