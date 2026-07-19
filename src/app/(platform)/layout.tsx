@@ -1,10 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, count, eq, notInArray } from "drizzle-orm";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { db } from "@/db";
-import { organization } from "@/db/schema";
+import { applications, organization } from "@/db/schema";
 import { requireTenant } from "@/lib/session";
 
 export default async function PlatformLayout({
@@ -14,16 +14,28 @@ export default async function PlatformLayout({
 }) {
   const { session, organizationId } = await requireTenant();
 
-  const tenant = await db.query.organization.findFirst({
-    where: eq(organization.id, organizationId),
-    columns: { name: true },
-  });
+  const [tenant, pipelineRows] = await Promise.all([
+    db.query.organization.findFirst({
+      where: eq(organization.id, organizationId),
+      columns: { name: true },
+    }),
+    db
+      .select({ value: count() })
+      .from(applications)
+      .where(
+        and(
+          eq(applications.organizationId, organizationId),
+          notInArray(applications.stage, ["placed", "rejected"]),
+        ),
+      ),
+  ]);
 
   return (
     <SidebarProvider>
       <AppSidebar
         tenantName={tenant?.name ?? "Workspace"}
         user={{ name: session.user.name, email: session.user.email }}
+        pipelineCount={pipelineRows[0]?.value ?? 0}
       />
       <SidebarInset>
         <AppTopbar />

@@ -176,7 +176,13 @@ export function PipelineBoard({
         toast.error(result.error);
         return;
       }
-      if (stage === "placed") toast.success("Placed! A placement record was created.");
+      if (stage === "placed") {
+        toast.success("Placed! A placement record was created.");
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          const confetti = (await import("canvas-confetti")).default;
+          confetti({ particleCount: 120, spread: 75, origin: { y: 0.7 }, disableForReducedMotion: true });
+        }
+      }
       router.refresh();
     });
   }

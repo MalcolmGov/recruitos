@@ -53,7 +53,11 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <Section className="border-b">
+      <Section className="relative overflow-hidden border-b">
+        <div
+          aria-hidden
+          className="bg-primary/10 absolute top-0 left-1/2 -z-10 h-72 w-[42rem] -translate-x-1/2 -translate-y-1/3 rounded-full blur-3xl"
+        />
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="secondary" className="mb-5">
             <Sparkles className="size-3.5" />
@@ -61,7 +65,7 @@ export default async function HomePage() {
           </Badge>
           <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
             UK-calibre talent.
-            <span className="text-primary"> South African advantage.</span>
+            <span className="text-gradient-primary"> South African advantage.</span>
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg text-balance">
             We help UK companies hire exceptional South African professionals — permanent,

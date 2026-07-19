@@ -22,6 +22,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -31,9 +32,10 @@ import { navigation } from "@/lib/navigation";
 type AppSidebarProps = {
   tenantName: string;
   user: { name: string; email: string };
+  pipelineCount?: number;
 };
 
-export function AppSidebar({ tenantName, user }: AppSidebarProps) {
+export function AppSidebar({ tenantName, user, pipelineCount }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -51,7 +53,7 @@ export function AppSidebar({ tenantName, user }: AppSidebarProps) {
   }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -82,12 +84,21 @@ export function AppSidebar({ tenantName, user }: AppSidebarProps) {
                       asChild
                       isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
                       tooltip={item.title}
+                      className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary transition-colors data-[active=true]:font-medium"
                     >
                       <Link href={item.href}>
+                        {(pathname === item.href || pathname.startsWith(`${item.href}/`)) ? (
+                          <span className="gradient-primary absolute inset-y-1.5 left-0 w-0.5 rounded-full" />
+                        ) : null}
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
+                    {item.href === "/pipeline" && pipelineCount ? (
+                      <SidebarMenuBadge className="text-muted-foreground">
+                        {pipelineCount}
+                      </SidebarMenuBadge>
+                    ) : null}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
