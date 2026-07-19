@@ -95,6 +95,23 @@ export const tenantFeatureFlags = pgTable(
   (t) => [primaryKey({ columns: [t.organizationId, t.flagKey] })],
 );
 
+/** Website contact-form submissions (platform-level; routed to sales). */
+export const inquiries = pgTable(
+  "inquiries",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    company: text("company"),
+    interest: text("interest", {
+      enum: ["hiring", "job-seeking", "partnership", "other"],
+    }).notNull(),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("inquiries_created_idx").on(t.createdAt)],
+);
+
 export const tenantSettingsRelations = relations(tenantSettings, ({ one }) => ({
   organization: one(organization, {
     fields: [tenantSettings.organizationId],
